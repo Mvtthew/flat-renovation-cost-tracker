@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Vite + React + TypeScript project. The original Vite starter boilerplate (App.tsx counter demo, default assets, PrimeReact/Tailwind experiments) has been removed. `src/App.tsx` renders a hand-rolled bottom tab bar (Chakra UI `Box`/`HStack`) with 5 tabs — Strona główna, Pokoje, Oś czasu, Dodaj, Ustawienia — each backed by a page component in `src/pages/` (mostly still placeholders). Routing is `react-router-dom` (see "Libraries"); the tab bar's `Link`s and `App.tsx`'s `<Routes>` are the source of truth for paths, not a separate route-constants file. No broader renovation-tracker feature set or state management/tests exist yet despite the repo name — [SettingsPage](src/pages/SettingsPage.md)'s budget and [ShopsSection](src/components/ShopsSection.md)/[ShopFormPage](src/pages/ShopFormPage.md) are the first real, Firebase-backed features.
+This is a Vite + React + TypeScript project. The original Vite starter boilerplate (App.tsx counter demo, default assets, PrimeReact/Tailwind experiments) has been removed. `src/App.tsx` renders a hand-rolled bottom tab bar (Chakra UI `Box`/`HStack`) with 4 tabs — Strona główna, Oś czasu, Dodaj, Ustawienia — each backed by a page component in `src/pages/` (mostly still placeholders). Routing is `react-router-dom` (see "Libraries"); the tab bar's `Link`s and `App.tsx`'s `<Routes>` are the source of truth for paths, not a separate route-constants file. No broader renovation-tracker feature set or state management/tests exist yet despite the repo name — [SettingsPage](src/pages/SettingsPage.md)'s budget and [ShopsSection](src/components/ShopsSection.md)/[ShopFormPage](src/pages/ShopFormPage.md) are the first real, Firebase-backed features.
 
 ## Language
 
@@ -35,7 +35,6 @@ Never run `npm run dev` / `vite` / start a dev server — the user runs it thems
 Icons use [**Gravity UI Icons**](https://github.com/gravity-ui/icons) (`@gravity-ui/icons`), a package of React SVG icon components. The bottom tab bar in `src/App.tsx` is hand-rolled (not a component-library tab widget), so icons render directly as SVG components — no icon-font indirection needed. Each tab button renders a [TabIcon](src/components/TabIcon.md) with the icon component and label. Icons currently in use, by tab:
 
 - Dom — `House`
-- Pokoje — `Circles4Square`
 - Plan — `ChartLine`
 - Ustawienia — `Gear`
 - Dodaj — `CirclePlus`
@@ -65,7 +64,6 @@ For every new component, create a sibling `.md` file (e.g. `src/components/CostL
 - [ShopsSection](src/components/ShopsSection.md)
 - [RoomsSection](src/components/RoomsSection.md)
 - [HomePage](src/pages/HomePage.md)
-- [RoomsPage](src/pages/RoomsPage.md)
 - [TimelinePage](src/pages/TimelinePage.md)
 - [AddPage](src/pages/AddPage.md)
 - [SettingsPage](src/pages/SettingsPage.md)

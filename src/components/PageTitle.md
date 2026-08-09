@@ -9,4 +9,4 @@ each tab's page component so every page has a consistent title treatment.
 
 ## Use cases
 
-- Top of `HomePage`, `RoomsPage`, `TimelinePage`, `AddPage`, `SettingsPage`.
+- Top of `HomePage`, `TimelinePage`, `AddPage`, `SettingsPage`.

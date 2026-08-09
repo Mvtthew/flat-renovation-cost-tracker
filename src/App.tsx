@@ -1,10 +1,9 @@
 import type { SVGProps } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { House, Circles4Square, ChartLine, CirclePlus, Gear } from '@gravity-ui/icons'
+import { House, ChartLine, CirclePlus, Gear } from '@gravity-ui/icons'
 import { Box, HStack } from '@chakra-ui/react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import HomePage from './pages/HomePage'
-import RoomsPage from './pages/RoomsPage'
 import TimelinePage from './pages/TimelinePage'
 import AddPage from './pages/AddPage'
 import SettingsPage from './pages/SettingsPage'
@@ -23,7 +22,6 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { label: 'Dom', path: '/', icon: House },
-  { label: 'Pokoje', path: '/pokoje', icon: Circles4Square },
   { label: 'Plan', path: '/plan', icon: ChartLine },
   { label: 'Ustawienia', path: '/ustawienia', icon: Gear },
   { label: 'Dodaj', path: '/dodaj', icon: CirclePlus },
@@ -68,7 +66,6 @@ function AppShell() {
       >
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/pokoje" element={<RoomsPage />} />
           <Route path="/plan" element={<TimelinePage />} />
           <Route path="/ustawienia" element={<SettingsPage />} />
           <Route path="/ustawienia/sklepy/nowy" element={<ShopFormPage />} />
