@@ -9,8 +9,8 @@ interface TabIconProps {
 
 function TabIcon({ icon: Icon, label, active }: TabIconProps) {
   return (
-    <VStack gap={0.5} color={active ? 'teal.500' : 'gray.500'}>
-      <Icon width={22} height={22} />
+    <VStack gap={0.5} color="primary.solid" opacity={active ? 1 : 0.5}>
+      <Icon width={26} height={26} />
       <Text fontSize="xs" fontWeight={active ? 'semibold' : 'normal'}>
         {label}
       </Text>

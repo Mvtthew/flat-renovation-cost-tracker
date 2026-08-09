@@ -1,9 +1,10 @@
 import { Box } from '@chakra-ui/react'
+import PageTitle from '../components/PageTitle'
 
 function TimelinePage() {
   return (
-    <Box textAlign="center" p={4}>
-      Timeline
+    <Box p={4}>
+      <PageTitle>Plan</PageTitle>
     </Box>
   )
 }

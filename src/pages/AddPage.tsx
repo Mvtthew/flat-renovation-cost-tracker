@@ -1,9 +1,10 @@
 import { Box } from '@chakra-ui/react'
+import PageTitle from '../components/PageTitle'
 
 function AddPage() {
   return (
-    <Box textAlign="center" p={4}>
-      Add
+    <Box p={4}>
+      <PageTitle>Dodaj</PageTitle>
     </Box>
   )
 }

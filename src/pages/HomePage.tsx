@@ -1,9 +1,10 @@
 import { Box } from '@chakra-ui/react'
+import PageTitle from '../components/PageTitle'
 
 function HomePage() {
   return (
-    <Box textAlign="center" p={4}>
-      Home
+    <Box p={4}>
+      <PageTitle>Dom</PageTitle>
     </Box>
   )
 }

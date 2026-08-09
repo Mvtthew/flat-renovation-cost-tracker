@@ -1,11 +1,22 @@
 @import "tailwindcss";
+@import "@fontsource/rokkitt/500.css";
 
 :root {
   color-scheme: light dark;
 }
 
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
+  background-color: #f6d8bd;
+  color: #5d3140;
+  font-family: 'Rokkitt', serif;
+  font-weight: 500;
+  font-size: 16px;
 }
 
 #root {

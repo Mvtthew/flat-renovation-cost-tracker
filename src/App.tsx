@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { SVGProps } from 'react'
-import { House, LayoutCells, Clock, CirclePlus, Gear } from '@gravity-ui/icons'
+import { House, LayoutCells, ChartLine, CirclePlus, Gear } from '@gravity-ui/icons'
 import { Box, HStack } from '@chakra-ui/react'
 import HomePage from './pages/HomePage'
 import RoomsPage from './pages/RoomsPage'
@@ -8,6 +8,9 @@ import TimelinePage from './pages/TimelinePage'
 import AddPage from './pages/AddPage'
 import SettingsPage from './pages/SettingsPage'
 import TabIcon from './components/TabIcon'
+import LoginScreen from './components/LoginScreen'
+import Loader from './components/Loader'
+import { useAuth } from './hooks/useAuth'
 
 interface TabDef {
   label: string
@@ -16,27 +19,39 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { label: 'Home', icon: House, content: <HomePage /> },
-  { label: 'Rooms', icon: LayoutCells, content: <RoomsPage /> },
-  { label: 'Timeline', icon: Clock, content: <TimelinePage /> },
-  { label: 'Add', icon: CirclePlus, content: <AddPage /> },
-  { label: 'Settings', icon: Gear, content: <SettingsPage /> },
+  { label: 'Dom', icon: House, content: <HomePage /> },
+  { label: 'Pokoje', icon: LayoutCells, content: <RoomsPage /> },
+  { label: 'Plan', icon: ChartLine, content: <TimelinePage /> },
+  { label: 'Ustawienia', icon: Gear, content: <SettingsPage /> },
+  { label: 'Dodaj', icon: CirclePlus, content: <AddPage /> },
 ]
 
 function App() {
   const [activeIndex, setActiveIndex] = useState(0)
+  const { ready, signedOut, signInWithGoogle } = useAuth()
+
+  if (signedOut) {
+    return <LoginScreen onSignIn={() => void signInWithGoogle()} />
+  }
+
+  if (!ready) {
+    return <Loader />
+  }
 
   return (
-    <Box display="flex" flexDirection="column" minH="100svh">
-      <Box flex="1" overflowY="auto" pb="16">
+    <Box display="flex" flexDirection="column" minH="100svh" bg="bg">
+      <Box flex="1" overflowY="auto" overscrollBehavior="none" pb="24">
         {TABS[activeIndex].content}
       </Box>
       <HStack
         as="nav"
         className="fixed inset-x-0 bottom-0"
         justify="space-around"
-        borderTopWidth="1px"
+        mx={4}
+        mb={4}
+        borderWidth="3px"
         borderColor="border"
+        borderRadius="xl"
         bg="bg.panel"
         py={2}
       >
