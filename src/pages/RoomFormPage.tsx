@@ -94,7 +94,7 @@ function RoomFormPage() {
             disabled={loading}
             w="full"
           >
-            <InputGroup endElement="PLN">
+            <InputGroup endElement="zł">
               <NumberInput.Input />
             </InputGroup>
           </NumberInput.Root>

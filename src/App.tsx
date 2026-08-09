@@ -5,10 +5,11 @@ import { Box, HStack } from '@chakra-ui/react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import TimelinePage from './pages/TimelinePage'
-import AddPage from './pages/AddPage'
 import SettingsPage from './pages/SettingsPage'
 import ShopFormPage from './pages/ShopFormPage'
 import RoomFormPage from './pages/RoomFormPage'
+import RoomDetailPage from './pages/RoomDetailPage'
+import PlanItemFormPage from './pages/PlanItemFormPage'
 import TabIcon from './components/TabIcon'
 import LoginScreen from './components/LoginScreen'
 import Loader from './components/Loader'
@@ -34,7 +35,8 @@ function AppShell() {
   const location = useLocation()
   const showTabBar =
     !location.pathname.startsWith('/ustawienia/sklepy') &&
-    !location.pathname.startsWith('/ustawienia/pomieszczenia')
+    !location.pathname.startsWith('/ustawienia/pomieszczenia') &&
+    !location.pathname.startsWith('/pozycje')
 
   const tabBarRef = useRef<HTMLDivElement>(null)
   const [tabBarHeight, setTabBarHeight] = useState(0)
@@ -66,13 +68,15 @@ function AppShell() {
       >
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/pokoje/:roomId" element={<RoomDetailPage />} />
           <Route path="/plan" element={<TimelinePage />} />
           <Route path="/ustawienia" element={<SettingsPage />} />
           <Route path="/ustawienia/sklepy/nowy" element={<ShopFormPage />} />
           <Route path="/ustawienia/sklepy/:shopId" element={<ShopFormPage />} />
           <Route path="/ustawienia/pomieszczenia/nowe" element={<RoomFormPage />} />
           <Route path="/ustawienia/pomieszczenia/:roomId" element={<RoomFormPage />} />
-          <Route path="/dodaj" element={<AddPage />} />
+          <Route path="/dodaj" element={<PlanItemFormPage />} />
+          <Route path="/pozycje/:itemId" element={<PlanItemFormPage />} />
         </Routes>
       </Box>
       {showTabBar && (
@@ -89,13 +93,18 @@ function AppShell() {
           bg="bg.panel"
           py={2}
         >
-          {TABS.map((tab) => (
-            <Box asChild key={tab.label} flex="1" className="cursor-pointer">
-              <Link to={tab.path}>
-                <TabIcon icon={tab.icon} label={tab.label} active={location.pathname === tab.path} />
-              </Link>
-            </Box>
-          ))}
+          {TABS.map((tab) => {
+            const active =
+              location.pathname === tab.path ||
+              (tab.path === '/' && location.pathname.startsWith('/pokoje/'))
+            return (
+              <Box asChild key={tab.label} flex="1" className="cursor-pointer">
+                <Link to={tab.path}>
+                  <TabIcon icon={tab.icon} label={tab.label} active={active} />
+                </Link>
+              </Box>
+            )
+          })}
         </HStack>
       )}
     </Box>

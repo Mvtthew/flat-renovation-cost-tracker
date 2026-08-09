@@ -1,14 +1,19 @@
-import { Heading } from '@chakra-ui/react'
+import type { SVGProps } from 'react'
+import { HStack, Heading } from '@chakra-ui/react'
 
 interface PageTitleProps {
   children: string
+  icon: (props: SVGProps<SVGSVGElement>) => React.JSX.Element
 }
 
-function PageTitle({ children }: PageTitleProps) {
+function PageTitle({ children, icon: Icon }: PageTitleProps) {
   return (
-    <Heading as="h1" fontSize="3xl" fontWeight="normal" textAlign="left" mb={8}>
-      {children}
-    </Heading>
+    <HStack gap={3} mb={8}>
+      <Icon width={28} height={28} color="var(--chakra-colors-primary-solid)" />
+      <Heading as="h1" fontSize="3xl" fontWeight="normal" textAlign="left">
+        {children}
+      </Heading>
+    </HStack>
   )
 }
 

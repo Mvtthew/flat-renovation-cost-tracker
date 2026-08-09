@@ -17,7 +17,6 @@
     "npm:firebase@^12.17.1": "12.17.1",
     "npm:next-themes@~0.4.6": "0.4.6_react@19.2.8_react-dom@19.2.8__react@19.2.8",
     "npm:oxlint@^1.75.0": "1.77.0",
-    "npm:react-animate-height@^3.2.4": "3.2.4_react@19.2.8_react-dom@19.2.8__react@19.2.8",
     "npm:react-dom@^19.2.8": "19.2.8_react@19.2.8",
     "npm:react-router-dom@^7.18.2": "7.18.2_react@19.2.8_react-dom@19.2.8__react@19.2.8",
     "npm:react@^19.2.8": "19.2.8",
@@ -2409,13 +2408,6 @@
     "re2js@2.8.6": {
       "integrity": "sha512-xLgQil4kIUCrAzVk9fRSkxkFNwmygLFjVxXrLc65aE1F0+Zsb8rxumFBy4XKyvgMCTL6kilDq3EZ0piE2dP/Dg=="
     },
-    "react-animate-height@3.2.4_react@19.2.8_react-dom@19.2.8__react@19.2.8": {
-      "integrity": "sha512-wcT37yHsFWDx8DmNFMy0AqSrYgNPGAtU9dyEqwIq3kSUXW03DWSi5WqbhlOALvMXcowal8JWUJRXij6TexilGQ==",
-      "dependencies": [
-        "react",
-        "react-dom"
-      ]
-    },
     "react-dom@19.2.8_react@19.2.8": {
       "integrity": "sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==",
       "dependencies": [
@@ -2647,7 +2639,6 @@
         "npm:firebase@^12.17.1",
         "npm:next-themes@~0.4.6",
         "npm:oxlint@^1.75.0",
-        "npm:react-animate-height@^3.2.4",
         "npm:react-dom@^19.2.8",
         "npm:react-router-dom@^7.18.2",
         "npm:react@^19.2.8",

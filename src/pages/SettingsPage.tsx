@@ -10,6 +10,7 @@ import {
   Spinner,
   Text,
 } from '@chakra-ui/react'
+import { Gear } from '@gravity-ui/icons'
 import { ref, get, set } from 'firebase/database'
 import { database } from '../lib/firebase'
 import { version } from '../../package.json'
@@ -53,7 +54,7 @@ function SettingsPage() {
 
   return (
     <Box p={4}>
-      <PageTitle>Ustawienia</PageTitle>
+      <PageTitle icon={Gear}>Ustawienia</PageTitle>
       <HStack justify="space-between">
         <HStack gap={3}>
           <Avatar.Root borderWidth="2px" borderColor="primary.solid">
@@ -79,7 +80,7 @@ function SettingsPage() {
           disabled={loadingBudget || savingBudget}
           w="full"
         >
-          <InputGroup endElement={loadingBudget ? <Spinner size="sm" /> : 'PLN'}>
+          <InputGroup endElement={loadingBudget ? <Spinner size="sm" /> : 'zł'}>
             <NumberInput.Input />
           </InputGroup>
         </NumberInput.Root>
