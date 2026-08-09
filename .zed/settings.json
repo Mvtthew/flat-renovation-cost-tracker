@@ -1,0 +1,27 @@
+// Zed project settings for flat-renovation-cost-tracker
+//
+// No Prettier/Biome config exists in this repo — oxlint (see .oxlintrc.json)
+// is lint-only, not a formatter. Use the TypeScript language server's
+// built-in formatting instead of Zed's global "auto"/Prettier default.
+{
+  "format_on_save": "on",
+  "formatter": "language_server",
+  "languages": {
+    "TypeScript": {
+      "formatter": "language_server",
+      "tab_size": 2
+    },
+    "TSX": {
+      "formatter": "language_server",
+      "tab_size": 2
+    },
+    "JavaScript": {
+      "formatter": "language_server",
+      "tab_size": 2
+    },
+    "JSON": {
+      "formatter": "language_server",
+      "tab_size": 2
+    }
+  }
+}
