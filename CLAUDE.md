@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Vite + React + TypeScript project. The original Vite starter boilerplate (App.tsx counter demo, default assets, PrimeReact/Tailwind experiments) has been removed. `src/App.tsx` renders a hand-rolled bottom tab bar (Chakra UI `Box`/`HStack`) with 5 tabs — Strona główna, Pokoje, Oś czasu, Dodaj, Ustawienia — each backed by a placeholder page component in `src/pages/`. No renovation-tracker features, real routing, state management, or tests exist yet despite the repo name.
+This is a Vite + React + TypeScript project. The original Vite starter boilerplate (App.tsx counter demo, default assets, PrimeReact/Tailwind experiments) has been removed. `src/App.tsx` renders a hand-rolled bottom tab bar (Chakra UI `Box`/`HStack`) with 5 tabs — Strona główna, Pokoje, Oś czasu, Dodaj, Ustawienia — each backed by a page component in `src/pages/` (mostly still placeholders). Routing is `react-router-dom` (see "Libraries"); the tab bar's `Link`s and `App.tsx`'s `<Routes>` are the source of truth for paths, not a separate route-constants file. No broader renovation-tracker feature set or state management/tests exist yet despite the repo name — [SettingsPage](src/pages/SettingsPage.md)'s budget and [ShopsSection](src/components/ShopsSection.md)/[ShopFormPage](src/pages/ShopFormPage.md) are the first real, Firebase-backed features.
 
 ## Language
 
@@ -25,15 +25,17 @@ Never run `npm run dev` / `vite` / start a dev server — the user runs it thems
 ## Libraries
 
 - **UI components**: [Chakra UI](https://chakra-ui.com/) v3 via `@chakra-ui/react` + `@emotion/react`. Wrap the app in `ChakraProvider value={system}` (see `src/main.tsx`) — Chakra v3 dropped the old `ChakraProvider theme={...}` API in favor of a `system` object; `system` is a custom theme (`src/theme.ts`, built on top of `defaultConfig`) that adds the app's `primary` color palette — see "Colors" below.
+- **Routing**: [react-router-dom](https://reactrouter.com/) v7, via `<BrowserRouter>` in `src/main.tsx` wrapping `<App>`. `App.tsx` defines the 5 tab paths (`/`, `/pokoje`, `/plan`, `/ustawienia`, `/dodaj`) plus nested full-page routes like `/ustawienia/sklepy/nowy` and `/ustawienia/sklepy/:shopId` ([ShopFormPage](src/pages/ShopFormPage.md)) that intentionally hide the bottom tab bar (checked via `useLocation().pathname` in `AppShell`) for focused add/edit flows reached from a settings list. Use `<Link>`/`useNavigate`/`useParams` for navigation; when putting a router `Link` inside a Chakra component, use `asChild` (e.g. `<Button asChild><Link to="...">...</Link></Button>`) rather than Chakra's `as={Link}` polymorphic prop — the latter doesn't type-check `to`.
 - **CSS framework**: [Tailwind CSS](https://tailwindcss.com/) v4 via the `@tailwindcss/vite` plugin (registered in `vite.config.ts`) and `@import "tailwindcss";` at the top of `src/index.css` — no `tailwind.config.js`/PostCSS setup needed with the v4 Vite plugin. Used for layout utilities (e.g. `fixed inset-x-0 bottom-0`, `cursor-pointer`) alongside Chakra's own style props; prefer Chakra style props for component-level styling (spacing, color, typography) and Tailwind classes for one-off layout/utility needs Chakra doesn't cover as tersely.
 - There is no separate general-purpose component library beyond Chakra UI (PrimeReact was installed and removed; Onsen UI was installed and removed).
+- **Height animation**: [`react-animate-height`](https://github.com/Stanko/react-animate-height) wraps content that toggles between a loading `Spinner` and a fetched list (e.g. [RoomsSection](src/components/RoomsSection.md), [ShopsSection](src/components/ShopsSection.md)) so the container's height transitions smoothly instead of jumping — `<AnimateHeight height="auto" duration={250}>`.
 
 ## Icons
 
 Icons use [**Gravity UI Icons**](https://github.com/gravity-ui/icons) (`@gravity-ui/icons`), a package of React SVG icon components. The bottom tab bar in `src/App.tsx` is hand-rolled (not a component-library tab widget), so icons render directly as SVG components — no icon-font indirection needed. Each tab button renders a [TabIcon](src/components/TabIcon.md) with the icon component and label. Icons currently in use, by tab:
 
 - Dom — `House`
-- Pokoje — `LayoutCells`
+- Pokoje — `Circles4Square`
 - Plan — `ChartLine`
 - Ustawienia — `Gear`
 - Dodaj — `CirclePlus`
@@ -60,11 +62,15 @@ For every new component, create a sibling `.md` file (e.g. `src/components/CostL
 - [PageTitle](src/components/PageTitle.md)
 - [LoginScreen](src/components/LoginScreen.md)
 - [Loader](src/components/Loader.md)
+- [ShopsSection](src/components/ShopsSection.md)
+- [RoomsSection](src/components/RoomsSection.md)
 - [HomePage](src/pages/HomePage.md)
 - [RoomsPage](src/pages/RoomsPage.md)
 - [TimelinePage](src/pages/TimelinePage.md)
 - [AddPage](src/pages/AddPage.md)
 - [SettingsPage](src/pages/SettingsPage.md)
+- [ShopFormPage](src/pages/ShopFormPage.md)
+- [RoomFormPage](src/pages/RoomFormPage.md)
 - [useAuth](src/hooks/useAuth.md) (hook, not a component, but documented the same way)
 
 Don't read these `.md` files proactively or all at once — only open the specific one relevant to the component you're currently touching.

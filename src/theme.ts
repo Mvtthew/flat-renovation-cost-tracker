@@ -1,4 +1,4 @@
-import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react'
+import { createSystem, defaultConfig, defineConfig, defineSlotRecipe } from '@chakra-ui/react'
 
 const config = defineConfig({
   theme: {
@@ -56,6 +56,59 @@ const config = defineConfig({
           size: 'lg',
         },
       },
+      input: {
+        variants: {
+          variant: {
+            outline: {
+              borderWidth: '2px',
+            },
+          },
+        },
+      },
+    },
+    slotRecipes: {
+      numberInput: defineSlotRecipe({
+        slots: ['root', 'input', 'control', 'incrementTrigger', 'decrementTrigger', 'valueText', 'label', 'scrubber'],
+        variants: {
+          variant: {
+            outline: {
+              input: {
+                borderWidth: '2px',
+              },
+            },
+          },
+        },
+      }),
+      segmentGroup: defineSlotRecipe({
+        slots: ['root', 'label', 'item', 'itemText', 'itemControl', 'indicator'],
+        base: {
+          root: {
+            bg: 'transparent',
+            borderWidth: '2px',
+            borderColor: 'border',
+            p: '1',
+            gap: '1',
+          },
+          item: {
+            borderRadius: 'md',
+            fontWeight: 'medium',
+            px: '4',
+            _before: {
+              display: 'none',
+            },
+          },
+          itemText: {
+            transition: 'color 0.2s',
+            '[data-state=checked] &': {
+              color: 'primary.contrast',
+            },
+          },
+          indicator: {
+            bg: 'primary.solid',
+            boxShadow: 'none',
+          },
+        },
+      }),
     },
   },
 })
