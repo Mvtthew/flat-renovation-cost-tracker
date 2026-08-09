@@ -85,7 +85,12 @@ function RoomDetailPage() {
   }, [])
 
   const planned = useMemo(
-    () => planItems.reduce((sum, item) => sum + (item.price ?? 0) * (item.amount ?? 1), 0),
+    () =>
+      planItems.reduce(
+        (sum, item) =>
+          sum + (item.price ?? 0) * (item.amount ?? 1) + (item.pickupType === 'delivery' ? (item.deliveryCost ?? 0) : 0),
+        0,
+      ),
     [planItems],
   )
 
@@ -100,8 +105,10 @@ function RoomDetailPage() {
   // TODO: derive from invoice data once that feature exists
   const spent = 0
   const budget = room?.budget ?? 0
-  const spentPct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0
-  const plannedPct = budget > 0 ? Math.min(100, (planned / budget) * 100) : 0
+  const maxValue = Math.max(budget, planned, spent)
+  const spentPct = maxValue > 0 ? (spent / maxValue) * 100 : 0
+  const plannedPct = maxValue > 0 ? (planned / maxValue) * 100 : 0
+  const budgetPct = maxValue > 0 ? (budget / maxValue) * 100 : 100
 
   return (
     <Box p={4} pb={8}>
@@ -141,18 +148,19 @@ function RoomDetailPage() {
             </Text>
           </Box>
         </Grid>
-        <Box
-          position="relative"
-          h="4"
-          mt={4}
-          borderRadius="full"
-          borderWidth="2px"
-          borderStyle="dashed"
-          borderColor="border"
-          overflow="hidden"
-        >
+        <Box position="relative" h="4" mt={4} borderRadius="full" overflow="hidden">
           <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} />
           <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} />
+          <Box
+            position="absolute"
+            inset="0"
+            bg="transparent"
+            borderWidth="2px"
+            borderStyle="dashed"
+            borderColor="border"
+            borderRadius="full"
+            width={`${budgetPct}%`}
+          />
         </Box>
         <HStack mt={2} gap={4} justify="center">
           <HStack gap={1.5}>

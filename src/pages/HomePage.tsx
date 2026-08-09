@@ -5,9 +5,11 @@ import { ref, onValue } from 'firebase/database'
 import { Link } from 'react-router-dom'
 import { database } from '../lib/firebase'
 import PageTitle from '../components/PageTitle'
+import type { PlanItem } from './PlanItemFormPage'
 
 const OVERALL_BUDGET_PATH = 'settings/overallBudget'
 const ROOMS_PATH = 'settings/rooms'
+const PLAN_ITEMS_PATH = 'planItems'
 
 interface RoomSummary {
   id: string
@@ -45,7 +47,7 @@ function StatBox({
       py={4}
       textAlign="center"
     >
-      <Text fontSize="xl" fontWeight="bold" color={isSolid ? 'white' : (color ?? undefined)}>
+      <Text fontSize="lg" fontWeight="bold" color={isSolid ? 'white' : (color ?? undefined)}>
         {value}
       </Text>
       <Text fontSize="sm" color={isSolid ? 'whiteAlpha.800' : (color ?? 'fg.muted')}>
@@ -89,14 +91,16 @@ function CategoryBar({ id, name, planned, spent }: RoomSummary) {
 
 function HomePage() {
   const [budget, setBudget] = useState(0)
-  const [rooms, setRooms] = useState<RoomSummary[]>([])
+  const [roomList, setRoomList] = useState<{ id: string; name: string }[]>([])
+  const [planItems, setPlanItems] = useState<PlanItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let budgetLoaded = false
     let roomsLoaded = false
+    let planItemsLoaded = false
     const markLoaded = () => {
-      if (budgetLoaded && roomsLoaded) setLoading(false)
+      if (budgetLoaded && roomsLoaded && planItemsLoaded) setLoading(false)
     }
 
     const unsubscribeBudget = onValue(ref(database, OVERALL_BUDGET_PATH), (snapshot) => {
@@ -107,32 +111,41 @@ function HomePage() {
     })
 
     const unsubscribeRooms = onValue(ref(database, ROOMS_PATH), (snapshot) => {
-      const value = snapshot.val() as Record<string, { name: string; budget?: number }> | null
-      setRooms(
-        value
-          ? Object.entries(value).map(([id, room]) => ({
-            id,
-            name: room.name,
-            planned: room.budget ?? 0,
-            spent: 0,
-          }))
-          : [],
-      )
+      const value = snapshot.val() as Record<string, { name: string }> | null
+      setRoomList(value ? Object.entries(value).map(([id, room]) => ({ id, name: room.name })) : [])
       roomsLoaded = true
+      markLoaded()
+    })
+
+    const unsubscribePlanItems = onValue(ref(database, PLAN_ITEMS_PATH), (snapshot) => {
+      const value = snapshot.val() as Record<string, Omit<PlanItem, 'id'>> | null
+      setPlanItems(value ? Object.entries(value).map(([id, item]) => ({ id, ...item })) : [])
+      planItemsLoaded = true
       markLoaded()
     })
 
     return () => {
       unsubscribeBudget()
       unsubscribeRooms()
+      unsubscribePlanItems()
     }
   }, [])
 
-  // TODO: derive from plan-item data once that feature exists
-  const planned = 0
+  const itemCost = (item: PlanItem) =>
+    (item.price ?? 0) * (item.amount ?? 1) + (item.pickupType === 'delivery' ? (item.deliveryCost ?? 0) : 0)
+
+  const rooms: RoomSummary[] = roomList.map((room) => ({
+    ...room,
+    planned: planItems.filter((item) => item.roomId === room.id).reduce((sum, item) => sum + itemCost(item), 0),
+    spent: 0,
+  }))
+
+  const planned = planItems.reduce((sum, item) => sum + itemCost(item), 0)
   const spent = rooms.reduce((sum, room) => sum + room.spent, 0)
-  const spentPct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0
-  const plannedPct = budget > 0 ? Math.min(100, (planned / budget) * 100) : 0
+  const maxValue = Math.max(budget, planned, spent)
+  const spentPct = maxValue > 0 ? (spent / maxValue) * 100 : 0
+  const plannedPct = maxValue > 0 ? (planned / maxValue) * 100 : 0
+  const budgetPct = maxValue > 0 ? (budget / maxValue) * 100 : 100
 
   if (loading) {
     return (
@@ -165,18 +178,19 @@ function HomePage() {
         <StatBox value={currencyFormatter.format(budget)} label="budżet" />
       </Grid>
 
-      <Box
-        position="relative"
-        h="6"
-        mt={4}
-        borderRadius="full"
-        borderWidth="3px"
-        borderStyle="dashed"
-        borderColor="border"
-        overflow="hidden"
-      >
+      <Box position="relative" h="6" mt={4} borderRadius="full" overflow="hidden">
         <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} />
         <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} />
+        <Box
+          position="absolute"
+          inset="0"
+          bg="transparent"
+          borderWidth="3px"
+          borderStyle="dashed"
+          borderColor="border"
+          borderRadius="full"
+          width={`${budgetPct}%`}
+        />
       </Box>
       <HStack mt={2} gap={4} justify="center">
         <HStack gap={1.5}>
