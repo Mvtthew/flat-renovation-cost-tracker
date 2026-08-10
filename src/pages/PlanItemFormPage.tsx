@@ -36,6 +36,7 @@ export interface PlanItem {
   pickupType: PickupType
   deliveryCost?: number
   deliveryDays?: number
+  purchased?: boolean
 }
 
 function PlanItemFormPage() {
@@ -59,6 +60,7 @@ function PlanItemFormPage() {
   const [pickupType, setPickupType] = useState<PickupType>('in-store')
   const [deliveryCost, setDeliveryCost] = useState('')
   const [deliveryDays, setDeliveryDays] = useState('')
+  const [purchased, setPurchased] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -95,6 +97,7 @@ function PlanItemFormPage() {
       setPickupType(value?.pickupType ?? 'in-store')
       setDeliveryCost(typeof value?.deliveryCost === 'number' ? String(value.deliveryCost) : '')
       setDeliveryDays(typeof value?.deliveryDays === 'number' ? String(value.deliveryDays) : '')
+      setPurchased(value?.purchased ?? false)
       setLoading(false)
     })
     return () => {
@@ -120,6 +123,7 @@ function PlanItemFormPage() {
       pickupType,
       deliveryCost: deliveryCost === '' ? 0 : Number(deliveryCost),
       deliveryDays: deliveryDays === '' ? 0 : Number(deliveryDays),
+      purchased,
     }
     setSaving(true)
     const savePromise = itemId
@@ -157,7 +161,7 @@ function PlanItemFormPage() {
             Pomieszczenie
           </Text>
           <NativeSelect.Root disabled={loading}>
-            <NativeSelect.Field value={roomId} onChange={(event) => setRoomId(event.target.value)}>
+            <NativeSelect.Field borderWidth="2px" value={roomId} onChange={(event) => setRoomId(event.target.value)}>
               <option value="">Wybierz pomieszczenie</option>
               {rooms.map((room) => (
                 <option key={room.id} value={room.id}>
@@ -199,6 +203,7 @@ function PlanItemFormPage() {
           </Text>
           <NativeSelect.Root disabled={loading}>
             <NativeSelect.Field
+              borderWidth="2px"
               value={shopId}
               onChange={(event) => {
                 const nextShopId = event.target.value
@@ -246,6 +251,7 @@ function PlanItemFormPage() {
             Notatki
           </Text>
           <Textarea
+            borderWidth="2px"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={3}

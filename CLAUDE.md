@@ -69,6 +69,7 @@ For every new component, create a sibling `.md` file (e.g. `src/components/CostL
 - [ShopFormPage](src/pages/ShopFormPage.md)
 - [RoomFormPage](src/pages/RoomFormPage.md)
 - [PlanItemFormPage](src/pages/PlanItemFormPage.md)
+- [InvoiceFormPage](src/pages/InvoiceFormPage.md)
 - [useAuth](src/hooks/useAuth.md) (hook, not a component, but documented the same way)
 
 Don't read these `.md` files proactively or all at once — only open the specific one relevant to the component you're currently touching.

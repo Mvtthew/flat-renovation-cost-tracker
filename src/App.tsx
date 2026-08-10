@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { House, ChartLine, CirclePlus, Gear } from '@gravity-ui/icons'
+import { House, ChartLine, CirclePlus, Gear, FilePlus } from '@gravity-ui/icons'
 import { Box, HStack } from '@chakra-ui/react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import HomePage from './pages/HomePage'
@@ -10,6 +10,7 @@ import ShopFormPage from './pages/ShopFormPage'
 import RoomFormPage from './pages/RoomFormPage'
 import RoomDetailPage from './pages/RoomDetailPage'
 import PlanItemFormPage from './pages/PlanItemFormPage'
+import InvoiceFormPage from './pages/InvoiceFormPage'
 import TabIcon from './components/TabIcon'
 import LoginScreen from './components/LoginScreen'
 import Loader from './components/Loader'
@@ -26,6 +27,7 @@ const TABS: TabDef[] = [
   { label: 'Plan', path: '/plan', icon: ChartLine },
   { label: 'Ustawienia', path: '/ustawienia', icon: Gear },
   { label: 'Dodaj', path: '/dodaj', icon: CirclePlus },
+  { label: 'Faktura', path: '/faktury/nowa', icon: FilePlus },
 ]
 
 const TAB_BAR_GAP = 16 // px, matches the nav's mb={4}
@@ -36,7 +38,8 @@ function AppShell() {
   const showTabBar =
     !location.pathname.startsWith('/ustawienia/sklepy') &&
     !location.pathname.startsWith('/ustawienia/pomieszczenia') &&
-    !location.pathname.startsWith('/pozycje')
+    !location.pathname.startsWith('/pozycje') &&
+    !(location.pathname.startsWith('/faktury') && location.pathname !== '/faktury/nowa')
 
   const tabBarRef = useRef<HTMLDivElement>(null)
   const [tabBarHeight, setTabBarHeight] = useState(0)
@@ -77,6 +80,8 @@ function AppShell() {
           <Route path="/ustawienia/pomieszczenia/:roomId" element={<RoomFormPage />} />
           <Route path="/dodaj" element={<PlanItemFormPage />} />
           <Route path="/pozycje/:itemId" element={<PlanItemFormPage />} />
+          <Route path="/faktury/nowa" element={<InvoiceFormPage />} />
+          <Route path="/faktury/:invoiceId" element={<InvoiceFormPage />} />
         </Routes>
       </Box>
       {showTabBar && (

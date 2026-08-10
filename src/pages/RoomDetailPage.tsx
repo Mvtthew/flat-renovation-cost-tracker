@@ -10,6 +10,7 @@ import {
   Hourglass,
   Link as LinkIcon,
   Pencil,
+  Receipt,
   ShoppingBasket,
   Trolley,
   Xmark,
@@ -18,10 +19,12 @@ import { database } from '../lib/firebase'
 import type { Room } from './RoomFormPage'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Shop } from './ShopFormPage'
+import type { Invoice } from './InvoiceFormPage'
 
 const ROOMS_PATH = 'settings/rooms'
 const PLAN_ITEMS_PATH = 'planItems'
 const SHOPS_PATH = 'settings/shops'
+const INVOICES_PATH = 'invoices'
 
 const currencyFormatter = new Intl.NumberFormat('pl-PL', {
   style: 'currency',
@@ -53,7 +56,8 @@ function RoomDetailPage() {
   const [loading, setLoading] = useState(true)
   const [planItems, setPlanItems] = useState<PlanItem[]>([])
   const [shops, setShops] = useState<Shop[]>([])
-  const [notesItem, setNotesItem] = useState<PlanItem | null>(null)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [notesEntry, setNotesEntry] = useState<{ title: string; notes: string } | null>(null)
 
   useEffect(() => {
     if (!roomId) return
@@ -84,6 +88,19 @@ function RoomDetailPage() {
     })
   }, [])
 
+  useEffect(() => {
+    if (!roomId) return
+    return onValue(ref(database, INVOICES_PATH), (snapshot) => {
+      const value = snapshot.val() as Record<string, Omit<Invoice, 'id'>> | null
+      const items = value
+        ? Object.entries(value)
+          .map(([id, invoice]) => ({ id, ...invoice }))
+          .filter((invoice) => invoice.roomId === roomId)
+        : []
+      setInvoices(items)
+    })
+  }, [roomId])
+
   const planned = useMemo(
     () =>
       planItems.reduce(
@@ -94,6 +111,16 @@ function RoomDetailPage() {
     [planItems],
   )
 
+  const spent = useMemo(
+    () =>
+      invoices.reduce(
+        (sum, invoice) =>
+          sum + (invoice.realCost ?? 0) + (invoice.pickupType === 'delivery' ? (invoice.deliveryCost ?? 0) : 0),
+        0,
+      ),
+    [invoices],
+  )
+
   if (loading) {
     return (
       <Box p={4} display="flex" justifyContent="center" py={12}>
@@ -102,8 +129,6 @@ function RoomDetailPage() {
     )
   }
 
-  // TODO: derive from invoice data once that feature exists
-  const spent = 0
   const budget = room?.budget ?? 0
   const maxValue = Math.max(budget, planned, spent)
   const spentPct = maxValue > 0 ? (spent / maxValue) * 100 : 0
@@ -149,8 +174,6 @@ function RoomDetailPage() {
           </Box>
         </Grid>
         <Box position="relative" h="4" mt={4} borderRadius="full" overflow="hidden">
-          <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} />
-          <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} />
           <Box
             position="absolute"
             inset="0"
@@ -160,6 +183,12 @@ function RoomDetailPage() {
             borderRadius="full"
             width={`${budgetPct}%`}
           />
+          {planned > 0 && (
+            <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} borderWidth="3px" borderColor="#CF4173" borderRadius="full" />
+          )}
+          {spent > 0 && (
+            <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} borderWidth="3px" borderColor="#5D3140" borderRadius="full" />
+          )}
         </Box>
         <HStack mt={2} gap={4} justify="center">
           <HStack gap={1.5}>
@@ -276,7 +305,7 @@ function RoomDetailPage() {
                     aria-label="Pokaż notatki"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setNotesItem(item)}
+                    onClick={() => setNotesEntry({ title: item.name, notes: item.notes ?? '' })}
                   >
                     <FileText />
                   </IconButton>
@@ -305,27 +334,101 @@ function RoomDetailPage() {
       </VStack>
 
       <HStack justify="space-between" mt={8} mb={3}>
-        <Text fontWeight="bold">Faktury (0)</Text>
-        <Button colorPalette="primary" size="sm" disabled title="Wkrótce dostępne">
-          + Dodaj fakturę
+        <Text fontWeight="bold">Faktury ({invoices.length})</Text>
+        <Button asChild colorPalette="primary" size="sm">
+          <Link to={`/faktury/nowa?roomId=${roomId}`}>+ Dodaj fakturę</Link>
         </Button>
       </HStack>
       <VStack align="stretch" gap={0} divideY="1px" borderColor="border">
-        <Text fontSize="sm" color="fg.muted" py={2}>
-          Brak faktur.
-        </Text>
+        {invoices.length === 0 ? (
+          <Text fontSize="sm" color="fg.muted" py={2}>
+            Brak faktur.
+          </Text>
+        ) : (
+          invoices.map((invoice) => {
+            const invoiceShopNames = [
+              ...new Set(
+                planItems
+                  .filter((item) => invoice.linkedItemIds?.includes(item.id) && item.shopId)
+                  .map((item) => shops.find((shop) => shop.id === item.shopId)?.name)
+                  .filter((name): name is string => Boolean(name)),
+              ),
+            ]
+            return (
+              <HStack key={invoice.id} justify="space-between" py={3}>
+                <HStack gap={3}>
+                  <Box
+                    boxSize="6"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    color="primary.300"
+                  >
+                    <Receipt />
+                  </Box>
+                  <Box>
+                    <Text>{invoice.title || 'Faktura'}</Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      {currencyFormatter.format(
+                        (invoice.realCost ?? 0) +
+                        (invoice.pickupType === 'delivery' ? (invoice.deliveryCost ?? 0) : 0),
+                      )}
+                    </Text>
+                    <HStack gap={1} mt={0.5}>
+                      <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                        <Calendar />
+                      </Box>
+                      <Text fontSize="xs" color="fg.muted">
+                        {dateFormatter.format(new Date(invoice.date))}
+                      </Text>
+                    </HStack>
+                    {invoiceShopNames.length > 0 && (
+                      <HStack gap={1} mt={0.5}>
+                        <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                          <ShoppingBasket />
+                        </Box>
+                        <Text fontSize="xs" color="fg.muted">
+                          {invoiceShopNames.join(', ')}
+                        </Text>
+                      </HStack>
+                    )}
+                  </Box>
+                </HStack>
+                <HStack gap={1}>
+                  {invoice.notes && (
+                    <IconButton
+                      aria-label="Pokaż notatki"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setNotesEntry({ title: invoice.title || 'Faktura', notes: invoice.notes ?? '' })
+                      }
+                    >
+                      <FileText />
+                    </IconButton>
+                  )}
+                  <IconButton asChild aria-label="Edytuj fakturę" variant="ghost" size="sm">
+                    <Link to={`/faktury/${invoice.id}`}>
+                      <Pencil />
+                    </Link>
+                  </IconButton>
+                </HStack>
+              </HStack>
+            )
+          })
+        )}
       </VStack>
 
-      <Dialog.Root open={Boolean(notesItem)} onOpenChange={(details) => !details.open && setNotesItem(null)}>
+      <Dialog.Root open={Boolean(notesEntry)} onOpenChange={(details) => !details.open && setNotesEntry(null)}>
         <Portal>
           <Dialog.Backdrop />
           <Dialog.Positioner>
             <Dialog.Content mx={4}>
               <Dialog.Header>
-                <Dialog.Title>{notesItem?.name}</Dialog.Title>
+                <Dialog.Title>{notesEntry?.title}</Dialog.Title>
               </Dialog.Header>
               <Dialog.Body>
-                <Text whiteSpace="pre-wrap">{notesItem?.notes}</Text>
+                <Text whiteSpace="pre-wrap">{notesEntry?.notes}</Text>
               </Dialog.Body>
               <Dialog.CloseTrigger asChild>
                 <IconButton aria-label="Zamknij" variant="ghost" size="sm" position="absolute" top={2} right={2}>

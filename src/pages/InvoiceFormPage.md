@@ -1,0 +1,18 @@
+# InvoiceFormPage
+
+Full-page (not modal, despite the lofi mockup calling it a dialog) add/edit form for a single purchase invoice — "record what you actually spent." Registered in `App.tsx` at `/faktury/nowa` (add mode) and `/faktury/:invoiceId` (edit mode, reached from [RoomDetailPage](RoomDetailPage.md)'s "+ Dodaj fakturę" button, which links to `/faktury/nowa?roomId=...` to preselect the room). `AppShell` hides the bottom tab bar whenever `location.pathname` starts with `/faktury`. Presence/absence of `invoiceId` (via `useParams`) selects edit vs. add mode, matching the [PlanItemFormPage](PlanItemFormPage.md) pattern.
+
+In edit mode it fetches the invoice once with `get(ref(database, 'invoices/:invoiceId'))` on mount. It subscribes with `onValue` to `settings/rooms` (Room `NativeSelect`) and `planItems` (filtered client-side to the selected room) to populate a multi-select of linked planned items, built with Chakra's `Select.Root multiple` + `createListCollection`. Fields: `Pomieszczenie` (room, required), `Powiąż z zaplanowaną pozycją` (optional multi-select of [PlanItemFormPage](PlanItemFormPage.md)'s `PlanItem`s scoped to the chosen room — changing room clears the selection), a `Zobacz szczegóły (N)` button (only shown once items are linked) that opens a read-only `Dialog` listing each linked item's name/link/price/amount/notes ("tylko do odczytu — edytuj z planu pomieszczenia"), `Zakup` (pickup type, reusing [ShopFormPage](ShopFormPage.md)'s `PickupType` via `SegmentGroup`), `Tytuł faktury` (free-text title, `Input`, right under `Zakup`), `Cena rzeczywista` (real cost, `NumberInput` with a `zł` suffix — not `PLN`, per lofi spec), `Koszt dostawy` (delivery cost, same `zł` suffix, only rendered when pickup is `delivery`), `Data` (native `Input type="date"`), and `Notatki` (3-row `Textarea`, same pattern as [PlanItemFormPage](PlanItemFormPage.md)). No photo/image field (intentionally omitted, per lofi spec). [RoomDetailPage](RoomDetailPage.md)'s invoice list derives shop/supplier names from the invoice's linked plan items' `shopId`s (deduped) rather than storing a shop on the invoice itself, and shows a `FileText` icon button (only when `notes` is set) that opens the same read-only notes `Dialog` used for plan items.
+
+A close icon (Gravity UI `Xmark`) sits top-right of the single "Nowa faktura"/"Edycja faktury" heading and calls `navigate(-1)`. Saving does `push()` (add) or `set()` (edit) on `invoices`; if any plan items are linked, it then patches each linked `planItems/:id/purchased` to `true` via a single multi-path `update()` — this is the "linking marks that planned item as purchased" behavior from the mockup. [PlanItemFormPage](PlanItemFormPage.md) preserves this flag across its own edits/saves. In edit mode only, "Usuń fakturę" (red outline) confirms via `window.confirm` then `remove()`s the node. Save is disabled until a room and date are set.
+
+Exports the `Invoice` type alongside the default component.
+
+## Props
+
+None — reads `invoiceId` from the route via `useParams` and an optional `roomId` query param (add mode only, to preselect the room) via `useSearchParams`.
+
+## Use cases
+
+- Recording an invoice/purchase for a room, optionally linked to one or more planned items (marking them as purchased).
+- Editing or deleting an existing invoice.

@@ -4,18 +4,14 @@ Dashboard page rendered by the "Home" tab in the bottom tab bar (see `src/App.ts
 
 ## Data
 
-Subscribes live (`onValue`, not `get()`) to two Realtime Database paths, both already used by [SettingsPage](SettingsPage.md):
+Subscribes live (`onValue`, not `get()`) to four Realtime Database paths:
 
 - `settings/overallBudget` — the total budget (see `SettingsPage`'s "Budżet całkowity" field).
-- `settings/rooms` — the room list (see [RoomsSection](../components/RoomsSection.md)), read here as spending categories. Each room's own `budget` field is treated as that room's "planned" amount.
+- `settings/rooms` — the room list (see [RoomsSection](../components/RoomsSection.md)), read here as spending categories.
+- `planItems` — all [PlanItemFormPage](PlanItemFormPage.md) entries. `planned` (overall and per-room) is the sum of each item's `price * amount` plus `deliveryCost` when `pickupType === 'delivery'`, not the room's own `budget` field.
+- `invoices` — all [InvoiceFormPage](InvoiceFormPage.md) entries. `spent` (overall and per-room) is the sum of each invoice's `realCost` plus `deliveryCost` when `pickupType === 'delivery'`, matched to a room via `invoice.roomId`. The "faktury" stat box shows `invoices.length`.
 
-There is no cost/invoice line-item feature yet (per the project's "Project state" notes in `CLAUDE.md`), so:
-
-- `planned` is derived as the sum of all room budgets.
-- `spent` is hardcoded to `0` everywhere (per-room and overall) until an invoices/plan-items data model exists.
-- The "faktury" (invoices) stat box is hardcoded to `0`; the box next to it shows the count of rooms instead of a "planned items" count, since no such entity exists.
-
-Once invoice/plan-item tracking is added, wire `spent` (and the invoices count) to that data instead of the hardcoded `0`s — the `RoomSummary` shape and `CategoryBar` component are already set up to take a real `spent` value per room.
+The `RoomSummary` shape and `CategoryBar` component take these real per-room `planned`/`spent` values directly.
 
 Each `CategoryBar` row is a router `Link` to `/pokoje/:roomId`, opening [RoomDetailPage](RoomDetailPage.md) for that room.
 
@@ -26,5 +22,5 @@ None.
 ## Use cases
 
 - At-a-glance view of total budget vs. planned vs. actually spent.
-- Per-room breakdown of planned spend (until per-room "spent" tracking exists, bars will show 0% filled).
+- Per-room breakdown of planned vs. actually spent, driven by linked invoices.
 - Tapping a room row to drill into its [RoomDetailPage](RoomDetailPage.md).
