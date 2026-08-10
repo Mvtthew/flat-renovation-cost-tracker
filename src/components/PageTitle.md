@@ -14,5 +14,5 @@ page has a consistent title treatment.
 
 ## Use cases
 
-- Top of `HomePage` (`House`), `TimelinePage` (`ChartLine`), `AddPage`
+- Top of `HomePage` (`House`), `PlanPage` (`ChartLine`), `AddPage`
   (`CirclePlus`), `SettingsPage` (`Gear`).

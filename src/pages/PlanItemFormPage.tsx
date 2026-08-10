@@ -14,7 +14,7 @@ import {
 } from '@chakra-ui/react'
 import { ref, push, set, remove, get, onValue } from 'firebase/database'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Xmark } from '@gravity-ui/icons'
+import { Box as BoxIcon, CirclePlus, Xmark } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import type { Room } from './RoomFormPage'
 import type { Shop, PickupType } from './ShopFormPage'
@@ -37,6 +37,7 @@ export interface PlanItem {
   deliveryCost?: number
   deliveryDays?: number
   purchased?: boolean
+  order?: number
 }
 
 function PlanItemFormPage() {
@@ -65,8 +66,10 @@ function PlanItemFormPage() {
 
   useEffect(() => {
     return onValue(ref(database, ROOMS_PATH), (snapshot) => {
-      const value = snapshot.val() as Record<string, { name: string; budget?: number }> | null
-      setRooms(value ? Object.entries(value).map(([id, room]) => ({ id, ...room })) : [])
+      const value = snapshot.val() as Record<string, { name: string; budget?: number; order?: number }> | null
+      const list = value ? Object.entries(value).map(([id, room]) => ({ id, ...room })) : []
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      setRooms(list)
     })
   }, [])
 
@@ -74,9 +77,11 @@ function PlanItemFormPage() {
     return onValue(ref(database, SHOPS_PATH), (snapshot) => {
       const value = snapshot.val() as Record<
         string,
-        { name: string; website?: string; pickupType?: PickupType; notes?: string }
+        { name: string; website?: string; pickupType?: PickupType; notes?: string; order?: number }
       > | null
-      setShops(value ? Object.entries(value).map(([id, shop]) => ({ id, ...shop })) : [])
+      const list = value ? Object.entries(value).map(([id, shop]) => ({ id, ...shop })) : []
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      setShops(list)
     })
   }, [])
 
@@ -109,7 +114,7 @@ function PlanItemFormPage() {
 
   const canSave = useMemo(() => Boolean(roomId && name.trim()), [roomId, name])
 
-  const saveItem = () => {
+  const saveItem = async () => {
     if (!canSave) return
     const data: Omit<PlanItem, 'id'> = {
       roomId,
@@ -126,13 +131,20 @@ function PlanItemFormPage() {
       purchased,
     }
     setSaving(true)
-    const savePromise = itemId
-      ? set(ref(database, `${PLAN_ITEMS_PATH}/${itemId}`), data)
-      : Promise.resolve(push(ref(database, PLAN_ITEMS_PATH), data))
-    savePromise.finally(() => {
+    try {
+      if (itemId) {
+        await set(ref(database, `${PLAN_ITEMS_PATH}/${itemId}`), data)
+      } else {
+        const snapshot = await get(ref(database, PLAN_ITEMS_PATH))
+        const existing = snapshot.val() as Record<string, PlanItem> | null
+        const roomItems = existing ? Object.values(existing).filter((item) => item.roomId === roomId) : []
+        const maxOrder = roomItems.length ? Math.max(...roomItems.map((item) => item.order ?? 0)) : -1
+        await push(ref(database, PLAN_ITEMS_PATH), { ...data, order: maxOrder + 1 })
+      }
+    } finally {
       setSaving(false)
       goBack()
-    })
+    }
   }
 
   const deleteItem = () => {
@@ -144,9 +156,12 @@ function PlanItemFormPage() {
   return (
     <Box p={4} pb={8}>
       <HStack justify="space-between" mb={1}>
-        <Text fontSize="xl" fontWeight="bold">
-          Zaplanuj koszt
-        </Text>
+        <HStack gap={2}>
+          {itemId ? <BoxIcon /> : <CirclePlus />}
+          <Text fontSize="xl" fontWeight="bold">
+            {itemId ? 'Edytuj zaplanowany koszt' : 'Zaplanuj koszt'}
+          </Text>
+        </HStack>
         <Box as="button" onClick={goBack} className="cursor-pointer" display="flex">
           <Xmark />
         </Box>
@@ -334,7 +349,7 @@ function PlanItemFormPage() {
           {itemId ? 'Zapisz zmiany' : 'Dodaj do planu'}
         </Button>
         {itemId && (
-          <Button variant="outline" colorPalette="red" onClick={deleteItem} disabled={loading}>
+          <Button variant="outline" borderWidth="2px" borderColor="#CF4173" color="#CF4173" onClick={deleteItem} disabled={loading}>
             Usuń pozycję
           </Button>
         )}

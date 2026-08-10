@@ -1,6 +1,11 @@
 import { createSystem, defaultConfig, defineConfig, defineSlotRecipe } from '@chakra-ui/react'
 
 const config = defineConfig({
+  globalCss: {
+    '*::placeholder, *[data-placeholder]': {
+      color: 'rgba(93, 49, 64, 0.5)',
+    },
+  },
   theme: {
     tokens: {
       fonts: {
@@ -27,6 +32,7 @@ const config = defineConfig({
       colors: {
         fg: {
           DEFAULT: { value: '{colors.primary.500}' },
+          muted: { value: 'rgba(93, 49, 64, 0.6)' },
         },
         bg: {
           DEFAULT: { value: '#F6D8BD' },
@@ -57,6 +63,11 @@ const config = defineConfig({
         },
       },
       input: {
+        base: {
+          _placeholder: {
+            color: 'rgba(93, 49, 64, 0.5)',
+          },
+        },
         variants: {
           variant: {
             outline: {
@@ -65,10 +76,24 @@ const config = defineConfig({
           },
         },
       },
+      textarea: {
+        base: {
+          _placeholder: {
+            color: 'rgba(93, 49, 64, 0.5)',
+          },
+        },
+      },
     },
     slotRecipes: {
       numberInput: defineSlotRecipe({
         slots: ['root', 'input', 'control', 'incrementTrigger', 'decrementTrigger', 'valueText', 'label', 'scrubber'],
+        base: {
+          input: {
+            _placeholder: {
+              color: 'rgba(93, 49, 64, 0.5)',
+            },
+          },
+        },
         variants: {
           variant: {
             outline: {

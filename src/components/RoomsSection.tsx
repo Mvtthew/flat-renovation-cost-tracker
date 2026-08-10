@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, HStack, IconButton, Spinner, Text, VStack } from '@chakra-ui/react'
-import { ref, onValue } from 'firebase/database'
+import { Box, Button, HStack, IconButton, Spinner, Text } from '@chakra-ui/react'
+import { ref, onValue, update } from 'firebase/database'
 import { Link } from 'react-router-dom'
 import { Circle, Pencil } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import type { Room } from '../pages/RoomFormPage'
+import SortableList from './SortableList'
 
 const ROOMS_PATH = 'settings/rooms'
 
@@ -15,11 +16,22 @@ function RoomsSection() {
   useEffect(() => {
     const roomsRef = ref(database, ROOMS_PATH)
     return onValue(roomsRef, (snapshot) => {
-      const value = snapshot.val() as Record<string, { name: string; budget?: number }> | null
-      setRooms(value ? Object.entries(value).map(([id, room]) => ({ id, ...room })) : [])
+      const value = snapshot.val() as Record<string, { name: string; budget?: number; order?: number }> | null
+      const list = value ? Object.entries(value).map(([id, room]) => ({ id, ...room })) : []
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      setRooms(list)
       setLoading(false)
     })
   }, [])
+
+  const handleReorder = (reordered: Room[]) => {
+    setRooms(reordered)
+    const updates: Record<string, number> = {}
+    reordered.forEach((room, index) => {
+      updates[`${ROOMS_PATH}/${room.id}/order`] = index
+    })
+    update(ref(database), updates)
+  }
 
   return (
     <Box>
@@ -34,9 +46,16 @@ function RoomsSection() {
           <Spinner size="md" />
         </Box>
       ) : (
-        <VStack gap={0} align="stretch" divideY="1px" borderColor="border">
-          {rooms.map((room) => (
-            <HStack key={room.id} justify="space-between" py={3}>
+        <SortableList
+          items={rooms}
+          onReorder={handleReorder}
+          renderItem={(room, index) => (
+            <HStack
+              justify="space-between"
+              py={3}
+              borderBottomWidth={index === rooms.length - 1 ? '0' : '1px'}
+              borderColor="border"
+            >
               <HStack gap={3}>
                 <Box
                   boxSize="6"
@@ -55,8 +74,8 @@ function RoomsSection() {
                 </Link>
               </IconButton>
             </HStack>
-          ))}
-        </VStack>
+          )}
+        />
       )}
       <Text mt={3} fontSize="sm" color="fg.muted">
         Pomieszczenia to takie kategorie dla naszych wpisów planu.

@@ -19,7 +19,7 @@ import {
 } from '@chakra-ui/react'
 import { ref, push, set, remove, get, onValue, update } from 'firebase/database'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Xmark } from '@gravity-ui/icons'
+import { ArrowLeft, FileDollar, FilePlus, Xmark } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import type { Room } from './RoomFormPage'
 import type { PlanItem } from './PlanItemFormPage'
@@ -39,6 +39,7 @@ export interface Invoice {
   deliveryCost?: number
   date: string
   notes?: string
+  order?: number
 }
 
 const currencyFormatter = new Intl.NumberFormat('pl-PL', {
@@ -70,8 +71,10 @@ function InvoiceFormPage() {
 
   useEffect(() => {
     return onValue(ref(database, ROOMS_PATH), (snapshot) => {
-      const value = snapshot.val() as Record<string, { name: string; budget?: number }> | null
-      setRooms(value ? Object.entries(value).map(([id, room]) => ({ id, ...room })) : [])
+      const value = snapshot.val() as Record<string, { name: string; budget?: number; order?: number }> | null
+      const list = value ? Object.entries(value).map(([id, room]) => ({ id, ...room })) : []
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      setRooms(list)
     })
   }, [])
 
@@ -125,11 +128,14 @@ function InvoiceFormPage() {
 
   const isDelivery = pickupType === 'delivery'
 
-  const canSave = useMemo(() => Boolean(roomId && date), [roomId, date])
+  const canSave = useMemo(
+    () => Boolean(roomId && date && linkedItemIds.length > 0),
+    [roomId, date, linkedItemIds],
+  )
 
-  const saveInvoice = () => {
+  const saveInvoice = async () => {
     if (!canSave) return
-    const data: Omit<Invoice, 'id'> = {
+    const data: Omit<Invoice, 'id' | 'order'> = {
       roomId,
       linkedItemIds,
       pickupType,
@@ -140,22 +146,27 @@ function InvoiceFormPage() {
       notes: notes.trim(),
     }
     setSaving(true)
-    const savePromise = invoiceId
-      ? set(ref(database, `${INVOICES_PATH}/${invoiceId}`), data)
-      : Promise.resolve(push(ref(database, INVOICES_PATH), data))
-    savePromise
-      .then(() => {
-        if (linkedItemIds.length === 0) return
+    try {
+      if (invoiceId) {
+        await set(ref(database, `${INVOICES_PATH}/${invoiceId}`), data)
+      } else {
+        const snapshot = await get(ref(database, INVOICES_PATH))
+        const existing = snapshot.val() as Record<string, Invoice> | null
+        const roomInvoices = existing ? Object.values(existing).filter((invoice) => invoice.roomId === roomId) : []
+        const maxOrder = roomInvoices.length ? Math.max(...roomInvoices.map((invoice) => invoice.order ?? 0)) : -1
+        await push(ref(database, INVOICES_PATH), { ...data, order: maxOrder + 1 })
+      }
+      if (linkedItemIds.length > 0) {
         const updates: Record<string, boolean> = {}
         for (const itemId of linkedItemIds) {
           updates[`${PLAN_ITEMS_PATH}/${itemId}/purchased`] = true
         }
-        return update(ref(database), updates)
-      })
-      .finally(() => {
-        setSaving(false)
-        goBack()
-      })
+        await update(ref(database), updates)
+      }
+    } finally {
+      setSaving(false)
+      goBack()
+    }
   }
 
   const deleteInvoice = () => {
@@ -167,9 +178,12 @@ function InvoiceFormPage() {
   return (
     <Box p={4} pb={8}>
       <HStack justify="space-between" mb={6}>
-        <Text fontSize="xl" fontWeight="bold">
-          {invoiceId ? 'Edycja faktury' : 'Nowa faktura'}
-        </Text>
+        <HStack gap={2}>
+          {invoiceId ? <FileDollar /> : <FilePlus />}
+          <Text fontSize="xl" fontWeight="bold">
+            {invoiceId ? 'Edycja faktury' : 'Nowa faktura'}
+          </Text>
+        </HStack>
         <Box as="button" onClick={goBack} className="cursor-pointer" display="flex">
           <Xmark />
         </Box>
@@ -202,7 +216,7 @@ function InvoiceFormPage() {
 
         <Box>
           <Text fontSize="sm" color="fg.muted" mb={1}>
-            Powiąż z zaplanowaną pozycją (opcjonalnie)
+            Powiąż z zaplanowaną pozycją
           </Text>
           <Select.Root
             multiple
@@ -232,6 +246,11 @@ function InvoiceFormPage() {
               </Select.Positioner>
             </Portal>
           </Select.Root>
+          {linkedItemIds.length === 0 && (
+            <Text fontSize="xs" color="fg.muted" mt={1}>
+              wybierz co najmniej jedną pozycję
+            </Text>
+          )}
         </Box>
 
         {linkedItemIds.length > 0 && (
@@ -343,7 +362,7 @@ function InvoiceFormPage() {
           {invoiceId ? 'Zapisz zmiany' : 'Zapisz fakturę'}
         </Button>
         {invoiceId && (
-          <Button variant="outline" colorPalette="red" onClick={deleteInvoice} disabled={loading}>
+          <Button variant="outline" borderWidth="2px" borderColor="#CF4173" color="#CF4173" onClick={deleteInvoice} disabled={loading}>
             Usuń fakturę
           </Button>
         )}

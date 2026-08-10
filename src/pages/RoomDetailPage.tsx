@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Text, VStack } from '@chakra-ui/react'
-import { ref, onValue } from 'firebase/database'
+import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Text } from '@chakra-ui/react'
+import { ref, onValue, update } from 'firebase/database'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -20,6 +20,8 @@ import type { Room } from './RoomFormPage'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Shop } from './ShopFormPage'
 import type { Invoice } from './InvoiceFormPage'
+import SortableList from '../components/SortableList'
+import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
 
 const ROOMS_PATH = 'settings/rooms'
 const PLAN_ITEMS_PATH = 'planItems'
@@ -77,6 +79,7 @@ function RoomDetailPage() {
           .map(([id, item]) => ({ id, ...item }))
           .filter((item) => item.roomId === roomId)
         : []
+      items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       setPlanItems(items)
     })
   }, [roomId])
@@ -97,9 +100,28 @@ function RoomDetailPage() {
           .map(([id, invoice]) => ({ id, ...invoice }))
           .filter((invoice) => invoice.roomId === roomId)
         : []
+      items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       setInvoices(items)
     })
   }, [roomId])
+
+  const handleReorderPlanItems = (reordered: PlanItem[]) => {
+    setPlanItems(reordered)
+    const updates: Record<string, number> = {}
+    reordered.forEach((item, index) => {
+      updates[`${PLAN_ITEMS_PATH}/${item.id}/order`] = index
+    })
+    update(ref(database), updates)
+  }
+
+  const handleReorderInvoices = (reordered: Invoice[]) => {
+    setInvoices(reordered)
+    const updates: Record<string, number> = {}
+    reordered.forEach((invoice, index) => {
+      updates[`${INVOICES_PATH}/${invoice.id}/order`] = index
+    })
+    update(ref(database), updates)
+  }
 
   const planned = useMemo(
     () =>
@@ -130,10 +152,6 @@ function RoomDetailPage() {
   }
 
   const budget = room?.budget ?? 0
-  const maxValue = Math.max(budget, planned, spent)
-  const spentPct = maxValue > 0 ? (spent / maxValue) * 100 : 0
-  const plannedPct = maxValue > 0 ? (planned / maxValue) * 100 : 0
-  const budgetPct = maxValue > 0 ? (budget / maxValue) * 100 : 100
 
   return (
     <Box p={4} pb={8}>
@@ -173,48 +191,15 @@ function RoomDetailPage() {
             </Text>
           </Box>
         </Grid>
-        <Box position="relative" h="4" mt={4} borderRadius="full" overflow="hidden">
-          <Box
-            position="absolute"
-            inset="0"
-            bg="transparent"
-            borderWidth="3px"
-            borderColor="#CF4173"
-            borderRadius="full"
-            width={`${budgetPct}%`}
+        <Box mt={4}>
+          <SpentPlannedBudgetBar
+            spent={spent}
+            planned={planned}
+            budget={budget}
+            formatValue={currencyFormatter.format}
+            showLegendValue={false}
           />
-          {planned > 0 && (
-            <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} borderWidth="3px" borderColor="#CF4173" borderRadius="full" />
-          )}
-          {spent > 0 && (
-            <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} borderWidth="3px" borderColor="#5D3140" borderRadius="full" />
-          )}
         </Box>
-        <HStack mt={2} gap={4} justify="center">
-          <HStack gap={1.5}>
-            <Box boxSize="2.5" borderRadius="full" bg="#5D3140" />
-            <Text fontSize="xs" color="fg.muted">
-              wydano
-            </Text>
-          </HStack>
-          <HStack gap={1.5}>
-            <Box boxSize="2.5" borderRadius="full" bg="#CF4173" />
-            <Text fontSize="xs" color="fg.muted">
-              zaplanowano
-            </Text>
-          </HStack>
-          <HStack gap={1.5}>
-            <Box
-              boxSize="2.5"
-              borderRadius="full"
-              borderWidth="1.5px"
-              borderColor="#CF4173"
-            />
-            <Text fontSize="xs" color="fg.muted">
-              budżet
-            </Text>
-          </HStack>
-        </HStack>
       </Box>
 
       <HStack justify="space-between" mt={8} mb={3}>
@@ -223,14 +208,21 @@ function RoomDetailPage() {
           <Link to={`/dodaj?roomId=${roomId}`}>+ Pozycja planu</Link>
         </Button>
       </HStack>
-      <VStack align="stretch" gap={0} divideY="1px" borderColor="border">
-        {planItems.length === 0 ? (
-          <Text fontSize="sm" color="fg.muted" py={2}>
-            Brak zaplanowanych pozycji.
-          </Text>
-        ) : (
-          planItems.map((item) => (
-            <HStack key={item.id} justify="space-between" py={3}>
+      {planItems.length === 0 ? (
+        <Text fontSize="sm" color="fg.muted" py={2}>
+          Brak zaplanowanych pozycji.
+        </Text>
+      ) : (
+        <SortableList
+          items={planItems}
+          onReorder={handleReorderPlanItems}
+          renderItem={(item) => (
+            <HStack
+              justify="space-between"
+              py={3}
+              borderBottomWidth={item.id === planItems[planItems.length - 1].id ? undefined : '1px'}
+              borderColor="border"
+            >
               <HStack gap={3}>
                 <Box
                   boxSize="6"
@@ -329,9 +321,9 @@ function RoomDetailPage() {
                 </IconButton>
               </HStack>
             </HStack>
-          ))
-        )}
-      </VStack>
+          )}
+        />
+      )}
 
       <HStack justify="space-between" mt={8} mb={3}>
         <Text fontWeight="bold">Faktury ({invoices.length})</Text>
@@ -339,13 +331,15 @@ function RoomDetailPage() {
           <Link to={`/faktury/nowa?roomId=${roomId}`}>+ Dodaj fakturę</Link>
         </Button>
       </HStack>
-      <VStack align="stretch" gap={0} divideY="1px" borderColor="border">
-        {invoices.length === 0 ? (
-          <Text fontSize="sm" color="fg.muted" py={2}>
-            Brak faktur.
-          </Text>
-        ) : (
-          invoices.map((invoice) => {
+      {invoices.length === 0 ? (
+        <Text fontSize="sm" color="fg.muted" py={2}>
+          Brak faktur.
+        </Text>
+      ) : (
+        <SortableList
+          items={invoices}
+          onReorder={handleReorderInvoices}
+          renderItem={(invoice) => {
             const invoiceShopNames = [
               ...new Set(
                 planItems
@@ -355,7 +349,12 @@ function RoomDetailPage() {
               ),
             ]
             return (
-              <HStack key={invoice.id} justify="space-between" py={3}>
+              <HStack
+                justify="space-between"
+                py={3}
+                borderBottomWidth={invoice.id === invoices[invoices.length - 1].id ? undefined : '1px'}
+                borderColor="border"
+              >
                 <HStack gap={3}>
                   <Box
                     boxSize="6"
@@ -415,9 +414,9 @@ function RoomDetailPage() {
                 </HStack>
               </HStack>
             )
-          })
-        )}
-      </VStack>
+          }}
+        />
+      )}
 
       <Dialog.Root open={Boolean(notesEntry)} onOpenChange={(details) => !details.open && setNotesEntry(null)}>
         <Portal>

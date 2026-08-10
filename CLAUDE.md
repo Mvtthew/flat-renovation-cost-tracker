@@ -28,6 +28,7 @@ Never run `npm run dev` / `vite` / start a dev server — the user runs it thems
 - **Routing**: [react-router-dom](https://reactrouter.com/) v7, via `<BrowserRouter>` in `src/main.tsx` wrapping `<App>`. `App.tsx` defines the 5 tab paths (`/`, `/pokoje`, `/plan`, `/ustawienia`, `/dodaj`) plus nested full-page routes like `/ustawienia/sklepy/nowy` and `/ustawienia/sklepy/:shopId` ([ShopFormPage](src/pages/ShopFormPage.md)) that intentionally hide the bottom tab bar (checked via `useLocation().pathname` in `AppShell`) for focused add/edit flows reached from a settings list. Use `<Link>`/`useNavigate`/`useParams` for navigation; when putting a router `Link` inside a Chakra component, use `asChild` (e.g. `<Button asChild><Link to="...">...</Link></Button>`) rather than Chakra's `as={Link}` polymorphic prop — the latter doesn't type-check `to`.
 - **CSS framework**: [Tailwind CSS](https://tailwindcss.com/) v4 via the `@tailwindcss/vite` plugin (registered in `vite.config.ts`) and `@import "tailwindcss";` at the top of `src/index.css` — no `tailwind.config.js`/PostCSS setup needed with the v4 Vite plugin. Used for layout utilities (e.g. `fixed inset-x-0 bottom-0`, `cursor-pointer`) alongside Chakra's own style props; prefer Chakra style props for component-level styling (spacing, color, typography) and Tailwind classes for one-off layout/utility needs Chakra doesn't cover as tersely.
 - There is no separate general-purpose component library beyond Chakra UI (PrimeReact was installed and removed; Onsen UI was installed and removed).
+- **Charts**: [Chakra UI Charts](https://www.chakra-ui.com/docs/components/charts) (`@chakra-ui/charts`), a thin Chakra-styled wrapper around [Recharts](https://recharts.org/) (`recharts`, a peer dep). Compose `Chart.Root`/`useChart` from `@chakra-ui/charts` with raw chart primitives imported from `recharts` (e.g. `PieChart`/`Pie`/`Cell`/`Label`/`Legend`/`Tooltip`) — see [RoomsDonutChart](src/components/RoomsDonutChart.md) for the donut-chart pattern (center total via `Chart.RadialText` inside a `Label`'s `content` render prop). `@chakra-ui/charts` also exports `BarSegment` (`Root`/`Content`/`Bar`/`Reference`/`Label`/`Value`/`Legend`/`Tooltip`), a plain Chakra-styled segmented bar with no `recharts`/`ResponsiveContainer` dependency — see [SpentVsPlannedBar](src/components/SpentVsPlannedBar.md) (2-segment: spent vs. planned, used on `PlanPage`) and [SpentPlannedBudgetBar](src/components/SpentPlannedBudgetBar.md) (3-segment: spent / planned / budget, used on `HomePage` and `RoomDetailPage`, including a `compact` list-row variant).
 
 ## Icons
 
@@ -62,9 +63,13 @@ For every new component, create a sibling `.md` file (e.g. `src/components/CostL
 - [Loader](src/components/Loader.md)
 - [ShopsSection](src/components/ShopsSection.md)
 - [RoomsSection](src/components/RoomsSection.md)
+- [SortableList](src/components/SortableList.md)
+- [RoomsDonutChart](src/components/RoomsDonutChart.md)
+- [SpentVsPlannedBar](src/components/SpentVsPlannedBar.md)
+- [SpentPlannedBudgetBar](src/components/SpentPlannedBudgetBar.md)
 - [HomePage](src/pages/HomePage.md)
 - [RoomDetailPage](src/pages/RoomDetailPage.md)
-- [TimelinePage](src/pages/TimelinePage.md)
+- [PlanPage](src/pages/PlanPage.md)
 - [SettingsPage](src/pages/SettingsPage.md)
 - [ShopFormPage](src/pages/ShopFormPage.md)
 - [RoomFormPage](src/pages/RoomFormPage.md)

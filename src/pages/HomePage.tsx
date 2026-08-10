@@ -11,6 +11,7 @@ import { ref, onValue } from 'firebase/database'
 import { Link } from 'react-router-dom'
 import { database } from '../lib/firebase'
 import PageTitle from '../components/PageTitle'
+import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Invoice } from './InvoiceFormPage'
 
@@ -39,7 +40,7 @@ function StatBox({
   variant = 'outline',
   color,
   icon: Icon,
-  py = 4,
+  py = 3,
   borderWidth = '3px',
 }: {
   value: string
@@ -52,17 +53,16 @@ function StatBox({
   borderWidth?: string,
 }) {
   const isSolid = variant === 'solid'
-  const isOutline = variant === 'outline'
   return (
     <Box
-      borderWidth={isOutline ? borderWidth : undefined}
-      borderColor={isOutline ? (color ?? 'border') : undefined}
+      borderWidth={borderWidth}
+      borderColor={(color ?? 'border')}
       bg={isSolid ? (color ?? 'primary.solid') : undefined}
       borderRadius="lg"
       py={py}
       textAlign="center"
     >
-      <HStack justify="center" gap={1.5} mb={-1}>
+      <HStack justify="center" gap={1.5} mb={-2}>
         <Text fontSize="lg" fontWeight="black" color={isSolid ? 'white' : (color ?? undefined)}>
           {value}
         </Text>
@@ -76,10 +76,6 @@ function StatBox({
 }
 
 function CategoryBar({ id, name, planned, spent, budget }: RoomSummary) {
-  const maxValue = Math.max(budget ?? 0, planned, spent)
-  const spentPct = maxValue > 0 ? (spent / maxValue) * 100 : 0
-  const plannedPct = maxValue > 0 ? (planned / maxValue) * 100 : 0
-  const budgetPct = maxValue > 0 ? ((budget ?? 0) / maxValue) * 100 : 100
   return (
     <HStack asChild className="cursor-pointer" gap={2}>
       <Link to={`/pokoje/${id}`}>
@@ -91,23 +87,13 @@ function CategoryBar({ id, name, planned, spent, budget }: RoomSummary) {
               {Boolean(budget) && ` / ${currencyFormatter.format(budget ?? 0)}`}
             </Text>
           </HStack>
-          <Box position="relative" h="4" borderRadius="full" overflow="hidden">
-            <Box
-              position="absolute"
-              inset="0"
-              bg="transparent"
-              borderWidth="2px"
-              borderColor="#CF4173"
-              borderRadius="full"
-              width={`${budgetPct}%`}
-            />
-            {planned > 0 && (
-              <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} borderWidth="2px" borderColor="#CF4173" borderRadius="full" />
-            )}
-            {spent > 0 && (
-              <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} borderWidth="2px" borderColor="#5D3140" borderRadius="full" />
-            )}
-          </Box>
+          <SpentPlannedBudgetBar
+            spent={spent}
+            planned={planned}
+            budget={budget ?? 0}
+            formatValue={currencyFormatter.format}
+            compact
+          />
         </Box>
         <Box color="fg.muted" display="flex" flexShrink="0" pl={2}>
           <ChevronRight width={16} height={16} />
@@ -119,7 +105,7 @@ function CategoryBar({ id, name, planned, spent, budget }: RoomSummary) {
 
 function HomePage() {
   const [budget, setBudget] = useState(0)
-  const [roomList, setRoomList] = useState<{ id: string; name: string; budget?: number }[]>([])
+  const [roomList, setRoomList] = useState<{ id: string; name: string; budget?: number; order?: number }[]>([])
   const [planItems, setPlanItems] = useState<PlanItem[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -141,10 +127,12 @@ function HomePage() {
     })
 
     const unsubscribeRooms = onValue(ref(database, ROOMS_PATH), (snapshot) => {
-      const value = snapshot.val() as Record<string, { name: string; budget?: number }> | null
-      setRoomList(
-        value ? Object.entries(value).map(([id, room]) => ({ id, name: room.name, budget: room.budget })) : [],
-      )
+      const value = snapshot.val() as Record<string, { name: string; budget?: number; order?: number }> | null
+      const list = value
+        ? Object.entries(value).map(([id, room]) => ({ id, name: room.name, budget: room.budget, order: room.order }))
+        : []
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      setRoomList(list)
       roomsLoaded = true
       markLoaded()
     })
@@ -185,10 +173,6 @@ function HomePage() {
 
   const planned = planItems.reduce((sum, item) => sum + itemCost(item), 0)
   const spent = invoices.reduce((sum, invoice) => sum + invoiceCost(invoice), 0)
-  const maxValue = Math.max(budget, planned, spent)
-  const spentPct = maxValue > 0 ? (spent / maxValue) * 100 : 0
-  const plannedPct = maxValue > 0 ? (planned / maxValue) * 100 : 0
-  const budgetPct = maxValue > 0 ? (budget / maxValue) * 100 : 100
 
   if (loading) {
     return (
@@ -202,7 +186,7 @@ function HomePage() {
     <Box p={4} pb={8}>
       <PageTitle icon={House}>Dom</PageTitle>
       <Text fontSize="2xl" fontWeight="bold" mb={2}>
-        Podsumowanie kosztorysu
+        Podsumowanie
       </Text>
 
       <Grid templateColumns="repeat(3, 1fr)" gap={2}>
@@ -225,59 +209,26 @@ function HomePage() {
         />
       </Grid>
 
-      <Box position="relative" h="6" mt={4} borderRadius="full" overflow="hidden">
-        <Box
-          position="absolute"
-          inset="0"
-          bg="transparent"
-          borderWidth="3px"
-          borderColor="#CF4173"
-          borderRadius="full"
-          width={`${budgetPct}%`}
+      <Box mt={4}>
+        <SpentPlannedBudgetBar
+          spent={spent}
+          planned={planned}
+          budget={budget}
+          formatValue={currencyFormatter.format}
+          showLegendValue={false}
         />
-        {planned > 0 && (
-          <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} borderWidth="3px" borderColor="#CF4173" borderRadius="full" />
-        )}
-        {spent > 0 && (
-          <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} borderWidth="3px" borderColor="#5D3140" borderRadius="full" />
-        )}
       </Box>
-      <HStack mt={2} gap={4} justify="center">
-        <HStack gap={1.5}>
-          <Box boxSize="2.5" borderRadius="full" bg="#5D3140" />
-          <Text fontSize="xs" color="fg.muted">
-            wydano
-          </Text>
-        </HStack>
-        <HStack gap={1.5}>
-          <Box boxSize="2.5" borderRadius="full" bg="#CF4173" />
-          <Text fontSize="xs" color="fg.muted">
-            zaplanowano
-          </Text>
-        </HStack>
-        <HStack gap={1.5}>
-          <Box
-            boxSize="2.5"
-            borderRadius="full"
-            borderWidth="1.5px"
-            borderStyle="solid"
-            borderColor="#CF4173"
-          />
-          <Text fontSize="xs" color="fg.muted">
-            budżet
-          </Text>
-        </HStack>
-      </HStack>
 
       <Grid templateColumns="repeat(3, 1fr)" gap={2} mt={8}>
-        <StatBox value={String(rooms.length)} label="pokoje" icon={Circles4Square} py={2} borderWidth="2px" />
         <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
         <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
+        <StatBox value={String(rooms.length)} label="pokoje" icon={Circles4Square} py={2} borderWidth="2px" />
       </Grid>
 
-      <Text fontWeight="bold" mt={8} mb={3}>
-        Pomieszczenia
-      </Text>
+      <HStack fontWeight="bold" mt={8} mb={3} gap={2}>
+        <Circles4Square width={18} height={18} />
+        <Text>Pomieszczenia</Text>
+      </HStack>
       <VStack gap={4} align="stretch">
         {rooms.length === 0 ? (
           <Text fontSize="sm" color="fg.muted">

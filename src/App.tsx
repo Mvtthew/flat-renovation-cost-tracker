@@ -4,7 +4,7 @@ import { House, ChartLine, CirclePlus, Gear, FilePlus } from '@gravity-ui/icons'
 import { Box, HStack } from '@chakra-ui/react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import HomePage from './pages/HomePage'
-import TimelinePage from './pages/TimelinePage'
+import PlanPage from './pages/PlanPage'
 import SettingsPage from './pages/SettingsPage'
 import ShopFormPage from './pages/ShopFormPage'
 import RoomFormPage from './pages/RoomFormPage'
@@ -26,12 +26,9 @@ const TABS: TabDef[] = [
   { label: 'Dom', path: '/', icon: House },
   { label: 'Plan', path: '/plan', icon: ChartLine },
   { label: 'Ustawienia', path: '/ustawienia', icon: Gear },
-  { label: 'Dodaj', path: '/dodaj', icon: CirclePlus },
   { label: 'Faktura', path: '/faktury/nowa', icon: FilePlus },
+  { label: 'Dodaj', path: '/dodaj', icon: CirclePlus },
 ]
-
-const TAB_BAR_GAP = 16 // px, matches the nav's mb={4}
-const TAB_BAR_BREATHING_ROOM = 16 // px, extra space below the nav so content doesn't sit flush against it
 
 function AppShell() {
   const location = useLocation()
@@ -59,7 +56,7 @@ function AppShell() {
   }, [showTabBar])
 
   const contentBottomPadding = showTabBar
-    ? tabBarHeight + TAB_BAR_GAP + TAB_BAR_BREATHING_ROOM
+    ? tabBarHeight
     : 0
 
   return (
@@ -72,7 +69,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/pokoje/:roomId" element={<RoomDetailPage />} />
-          <Route path="/plan" element={<TimelinePage />} />
+          <Route path="/plan" element={<PlanPage />} />
           <Route path="/ustawienia" element={<SettingsPage />} />
           <Route path="/ustawienia/sklepy/nowy" element={<ShopFormPage />} />
           <Route path="/ustawienia/sklepy/:shopId" element={<ShopFormPage />} />

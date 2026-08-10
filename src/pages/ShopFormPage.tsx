@@ -24,6 +24,7 @@ export interface Shop {
   website?: string
   pickupType?: PickupType
   notes?: string
+  order?: number
 }
 
 function ShopFormPage() {
@@ -55,7 +56,7 @@ function ShopFormPage() {
     }
   }, [shopId])
 
-  const saveShop = () => {
+  const saveShop = async () => {
     const trimmedName = name.trim()
     if (!trimmedName) return
     const data = {
@@ -65,13 +66,21 @@ function ShopFormPage() {
       notes: notes.trim(),
     }
     setSaving(true)
-    const savePromise = shopId
-      ? set(ref(database, `${SHOPS_PATH}/${shopId}`), data)
-      : Promise.resolve(push(ref(database, SHOPS_PATH), data))
-    savePromise.finally(() => {
+    try {
+      if (shopId) {
+        await set(ref(database, `${SHOPS_PATH}/${shopId}`), data)
+      } else {
+        const snapshot = await get(ref(database, SHOPS_PATH))
+        const existing = snapshot.val() as Record<string, Shop> | null
+        const maxOrder = existing
+          ? Math.max(...Object.values(existing).map((shop) => shop.order ?? 0))
+          : -1
+        await push(ref(database, SHOPS_PATH), { ...data, order: maxOrder + 1 })
+      }
+    } finally {
       setSaving(false)
       goBack()
-    })
+    }
   }
 
   const deleteShop = () => {
@@ -150,7 +159,7 @@ function ShopFormPage() {
           Zapisz
         </Button>
         {shopId && (
-          <Button variant="outline" colorPalette="red" onClick={deleteShop} disabled={loading}>
+          <Button variant="outline" borderWidth="2px" borderColor="#CF4173" color="#CF4173" onClick={deleteShop} disabled={loading}>
             Usuń sklep
           </Button>
         )}

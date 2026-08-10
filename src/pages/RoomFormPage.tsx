@@ -11,6 +11,7 @@ export interface Room {
   id: string
   name: string
   budget?: number
+  order?: number
 }
 
 function RoomFormPage() {
@@ -38,21 +39,32 @@ function RoomFormPage() {
     }
   }, [roomId])
 
-  const saveRoom = () => {
+  const saveRoom = async () => {
     const trimmedName = name.trim()
     if (!trimmedName) return
-    const data = {
-      name: trimmedName,
-      budget: budget === '' ? 0 : Number(budget),
-    }
     setSaving(true)
-    const savePromise = roomId
-      ? set(ref(database, `${ROOMS_PATH}/${roomId}`), data)
-      : Promise.resolve(push(ref(database, ROOMS_PATH), data))
-    savePromise.finally(() => {
+    try {
+      if (roomId) {
+        await set(ref(database, `${ROOMS_PATH}/${roomId}`), {
+          name: trimmedName,
+          budget: budget === '' ? 0 : Number(budget),
+        })
+      } else {
+        const snapshot = await get(ref(database, ROOMS_PATH))
+        const existing = snapshot.val() as Record<string, Room> | null
+        const maxOrder = existing
+          ? Math.max(...Object.values(existing).map((room) => room.order ?? 0))
+          : -1
+        await push(ref(database, ROOMS_PATH), {
+          name: trimmedName,
+          budget: budget === '' ? 0 : Number(budget),
+          order: maxOrder + 1,
+        })
+      }
+    } finally {
       setSaving(false)
       goBack()
-    })
+    }
   }
 
   const deleteRoom = () => {
@@ -106,7 +118,7 @@ function RoomFormPage() {
           Zapisz
         </Button>
         {roomId && (
-          <Button variant="outline" colorPalette="red" onClick={deleteRoom} disabled={loading}>
+          <Button variant="outline" borderWidth="2px" borderColor="#CF4173" color="#CF4173" onClick={deleteRoom} disabled={loading}>
             Usuń pomieszczenie
           </Button>
         )}

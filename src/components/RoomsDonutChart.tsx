@@ -1,0 +1,104 @@
+import { Chart, useChart } from '@chakra-ui/charts'
+import { Cell, Label, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts'
+import type { PieLabelRenderProps } from 'recharts'
+import { Text } from '@chakra-ui/react'
+
+export interface DonutSegment {
+  id: string
+  label: string
+  value: number
+}
+
+interface RoomsDonutChartProps {
+  segments: DonutSegment[]
+  centerLabel: string
+  total: number
+  formatValue: (value: number) => string
+}
+
+// Fixed brand order — never cycled or reassigned by value/rank, so a room
+// keeps its color as the underlying data changes.
+const SLOT_COLORS = [
+  '#5D3140', // primary.500
+  '#CF4173', // "zaplanowano" accent
+  '#F39399', // lightest brand accent
+]
+const OTHER_COLOR = '#ecd3db' // primary.100, reserved for the folded "Inne" slice
+
+function RoomsDonutChart({ segments, centerLabel, total, formatValue }: RoomsDonutChartProps) {
+  const withValue = segments.filter((segment) => segment.value > 0)
+
+  const topSegments = withValue.slice(0, SLOT_COLORS.length)
+  const otherValue = withValue.slice(SLOT_COLORS.length).reduce((sum, segment) => sum + segment.value, 0)
+  const chartData = [
+    ...topSegments.map((segment, index) => ({
+      name: segment.label,
+      value: segment.value,
+      color: SLOT_COLORS[index],
+    })),
+    ...(otherValue > 0 ? [{ name: 'Inne', value: otherValue, color: OTHER_COLOR }] : []),
+  ]
+
+  const chart = useChart({
+    data: chartData,
+    series: chartData.map((item) => ({ name: item.name as never, color: item.color })),
+  })
+
+  if (total <= 0 || chartData.length === 0) {
+    return (
+      <Text fontSize="sm" color="fg.muted">
+        Brak zaplanowanych pozycji.
+      </Text>
+    )
+  }
+
+  return (
+    <Chart.Root boxSize="260px" mx="auto" chart={chart}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Tooltip
+            cursor={false}
+            animationDuration={100}
+            content={<Chart.Tooltip hideLabel formatter={(value) => formatValue(Number(value))} />}
+          />
+          <Pie
+            isAnimationActive={false}
+            data={chart.data}
+            dataKey={chart.key('value')}
+            nameKey={chart.key('name')}
+            innerRadius="65%"
+            outerRadius="90%"
+            paddingAngle={2}
+            cornerRadius={5}
+            strokeWidth={0}
+            label={({ name, x, y, textAnchor }: PieLabelRenderProps) => (
+              <text
+                x={x}
+                y={y}
+                fill="var(--chakra-colors-fg-muted)"
+                textAnchor={textAnchor ?? 'middle'}
+                dominantBaseline="central"
+              >
+                {name}
+              </text>
+            )}
+            activeShape={(shapeProps: React.ComponentProps<typeof Sector>) => (
+              <Sector {...shapeProps} outerRadius={Number(shapeProps.outerRadius) + 6} />
+            )}
+          >
+            {chart.data.map((item) => (
+              <Cell key={item.name} fill={chart.color(item.color)} />
+            ))}
+            <Label
+              content={({ viewBox }) => (
+                <Chart.RadialText viewBox={viewBox} title={formatValue(total)} fontSize='26px' description={centerLabel} />
+              )}
+            />
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+    </Chart.Root>
+  )
+}
+
+export default RoomsDonutChart

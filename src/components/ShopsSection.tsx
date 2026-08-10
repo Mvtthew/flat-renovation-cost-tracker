@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Box, Button, HStack, IconButton, Spinner, Text, VStack } from '@chakra-ui/react'
-import { ref, onValue } from 'firebase/database'
+import { Box, Button, HStack, IconButton, Spinner, Text } from '@chakra-ui/react'
+import { ref, onValue, update } from 'firebase/database'
 import { Link } from 'react-router-dom'
 import { Pencil, ShoppingBasket } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import type { PickupType, Shop } from '../pages/ShopFormPage'
+import SortableList from './SortableList'
 
 const SHOPS_PATH = 'settings/shops'
 
@@ -17,14 +18,23 @@ function ShopsSection() {
     return onValue(shopsRef, (snapshot) => {
       const value = snapshot.val() as Record<
         string,
-        { name: string; website?: string; pickupType?: PickupType; notes?: string }
+        { name: string; website?: string; pickupType?: PickupType; notes?: string; order?: number }
       > | null
-      setShops(
-        value ? Object.entries(value).map(([id, shop]) => ({ id, ...shop })) : [],
-      )
+      const list = value ? Object.entries(value).map(([id, shop]) => ({ id, ...shop })) : []
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      setShops(list)
       setLoading(false)
     })
   }, [])
+
+  const handleReorder = (reordered: Shop[]) => {
+    setShops(reordered)
+    const updates: Record<string, number> = {}
+    reordered.forEach((shop, index) => {
+      updates[`${SHOPS_PATH}/${shop.id}/order`] = index
+    })
+    update(ref(database), updates)
+  }
 
   return (
     <Box>
@@ -39,9 +49,16 @@ function ShopsSection() {
           <Spinner size="md" />
         </Box>
       ) : (
-        <VStack gap={0} align="stretch" divideY="1px" borderColor="border">
-          {shops.map((shop) => (
-            <HStack key={shop.id} justify="space-between" py={3}>
+        <SortableList
+          items={shops}
+          onReorder={handleReorder}
+          renderItem={(shop, index) => (
+            <HStack
+              justify="space-between"
+              py={3}
+              borderBottomWidth={index === shops.length - 1 ? '0' : '1px'}
+              borderColor="border"
+            >
               <HStack gap={3}>
                 <Box
                   boxSize="6"
@@ -60,8 +77,8 @@ function ShopsSection() {
                 </Link>
               </IconButton>
             </HStack>
-          ))}
-        </VStack>
+          )}
+        />
       )}
       <Text mt={3} fontSize="sm" color="fg.muted">
         Sklepy pokazane tutaj pojawiają się jako opcje w formularzu pozycji planu.
