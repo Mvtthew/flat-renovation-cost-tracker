@@ -226,7 +226,7 @@ function PlanItemFormPage() {
               Cena (za szt.)
             </Text>
             <NumberInput.Root value={price} onValueChange={(details) => setPrice(details.value)} min={0} disabled={loading} w="full">
-              <InputGroup endElement="PLN">
+              <InputGroup endElement="zł">
                 <NumberInput.Input />
               </InputGroup>
             </NumberInput.Root>
@@ -297,7 +297,7 @@ function PlanItemFormPage() {
                 disabled={loading}
                 w="full"
               >
-                <InputGroup endElement="PLN">
+                <InputGroup endElement="zł">
                   <NumberInput.Input />
                 </InputGroup>
               </NumberInput.Root>

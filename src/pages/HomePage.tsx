@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Box, Grid, HStack, Spinner, Text, VStack } from '@chakra-ui/react'
-import { ChevronRight, House } from '@gravity-ui/icons'
+import {
+  Box as BoxIcon,
+  ChevronRight,
+  Circles4Square,
+  FileDollar,
+  House,
+} from '@gravity-ui/icons'
 import { ref, onValue } from 'firebase/database'
 import { Link } from 'react-router-dom'
 import { database } from '../lib/firebase'
@@ -29,27 +35,34 @@ function StatBox({
   label,
   variant = 'outline',
   color,
+  icon: Icon,
+  py = 4,
 }: {
   value: string
   label: string
   variant?: 'outline' | 'solid' | 'plain'
   color?: string
+  icon?: typeof House
+  py?: number,
+  gap?: number,
 }) {
   const isSolid = variant === 'solid'
   const isOutline = variant === 'outline'
   return (
     <Box
-      borderWidth={isOutline ? '2px' : undefined}
-      borderStyle={isOutline ? 'dashed' : undefined}
+      borderWidth={isOutline ? '3px' : undefined}
       borderColor={isOutline ? (color ?? 'border') : undefined}
       bg={isSolid ? (color ?? 'primary.solid') : undefined}
       borderRadius="lg"
-      py={4}
+      py={py}
       textAlign="center"
     >
-      <Text fontSize="lg" fontWeight="bold" color={isSolid ? 'white' : (color ?? undefined)}>
-        {value}
-      </Text>
+      <HStack justify="center" gap={1.5} mb={-1}>
+        <Text fontSize="lg" fontWeight="bold" color={isSolid ? 'white' : (color ?? undefined)}>
+          {value}
+        </Text>
+        {Icon && <Icon width={16} height={16} color={isSolid ? 'white' : (color ?? undefined)} />}
+      </HStack>
       <Text fontSize="sm" color={isSolid ? 'whiteAlpha.800' : (color ?? 'fg.muted')}>
         {label}
       </Text>
@@ -71,11 +84,10 @@ function CategoryBar({ id, name, planned, spent }: RoomSummary) {
           </HStack>
           <Box
             position="relative"
-            h="4"
+            h="5"
             borderRadius="full"
-            borderWidth="2px"
-            borderStyle="dashed"
-            borderColor="border"
+            borderWidth="3px"
+            borderColor="#CF4173"
             overflow="hidden"
           >
             <Box position="absolute" inset="0" bg="primary.500" width={`${spentPct}%`} />
@@ -158,11 +170,11 @@ function HomePage() {
   return (
     <Box p={4} pb={8}>
       <PageTitle icon={House}>Dom</PageTitle>
-      <Text fontSize="2xl" fontWeight="bold" mb={6}>
+      <Text fontSize="2xl" fontWeight="bold" mb={2}>
         Podsumowanie kosztorysu
       </Text>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={3}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <StatBox
           variant="solid"
           color="#5D3140"
@@ -175,22 +187,24 @@ function HomePage() {
           value={currencyFormatter.format(planned)}
           label="zaplanowano"
         />
-        <StatBox value={currencyFormatter.format(budget)} label="budżet" />
+        <StatBox
+          value={currencyFormatter.format(budget)}
+          label="budżet"
+          color="#CF4173"
+        />
       </Grid>
 
       <Box position="relative" h="6" mt={4} borderRadius="full" overflow="hidden">
-        <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} />
-        <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} />
         <Box
           position="absolute"
           inset="0"
-          bg="transparent"
           borderWidth="3px"
-          borderStyle="dashed"
-          borderColor="border"
+          borderColor="#CF4173"
           borderRadius="full"
           width={`${budgetPct}%`}
         />
+        <Box position="absolute" inset="0" bg="#CF4173" width={`${plannedPct}%`} />
+        <Box position="absolute" inset="0" bg="#5D3140" width={`${spentPct}%`} />
       </Box>
       <HStack mt={2} gap={4} justify="center">
         <HStack gap={1.5}>
@@ -210,8 +224,8 @@ function HomePage() {
             boxSize="2.5"
             borderRadius="full"
             borderWidth="1.5px"
-            borderStyle="dashed"
-            borderColor="border"
+            borderStyle="solid"
+            borderColor="#CF4173"
           />
           <Text fontSize="xs" color="fg.muted">
             budżet
@@ -219,9 +233,10 @@ function HomePage() {
         </HStack>
       </HStack>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={3} mt={6}>
-        <StatBox variant="solid" color="#F39399" value={String(rooms.length)} label="pomieszczenia" />
-        <StatBox variant="solid" color="#F39399" value="0" label="faktury" />
+      <Grid templateColumns="repeat(3, 1fr)" gap={2} mt={8}>
+        <StatBox value={String(rooms.length)} label="pokoje" icon={Circles4Square} py={2} />
+        <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} />
+        <StatBox value="0" label="faktury" icon={FileDollar} py={2} />
       </Grid>
 
       <Text fontWeight="bold" mt={8} mb={3}>

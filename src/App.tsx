@@ -85,13 +85,11 @@ function AppShell() {
           as="nav"
           className="fixed inset-x-0 bottom-0"
           justify="space-around"
-          mx={4}
-          mb={4}
-          borderWidth="3px"
+          borderTopWidth="3px"
           borderColor="border"
-          borderRadius="xl"
           bg="bg.panel"
-          py={2}
+          px={4}
+          py={4}
         >
           {TABS.map((tab) => {
             const active =

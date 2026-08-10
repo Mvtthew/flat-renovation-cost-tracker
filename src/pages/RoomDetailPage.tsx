@@ -70,8 +70,8 @@ function RoomDetailPage() {
       const value = snapshot.val() as Record<string, Omit<PlanItem, 'id'>> | null
       const items = value
         ? Object.entries(value)
-            .map(([id, item]) => ({ id, ...item }))
-            .filter((item) => item.roomId === roomId)
+          .map(([id, item]) => ({ id, ...item }))
+          .filter((item) => item.roomId === roomId)
         : []
       setPlanItems(items)
     })
@@ -121,10 +121,10 @@ function RoomDetailPage() {
         </Text>
       </HStack>
 
-      <Box borderWidth="2px" borderColor="border" borderRadius="lg" p={4}>
+      <Box borderWidth="3px" borderColor="border" borderRadius="lg" p={4}>
         <Grid templateColumns="repeat(3, 1fr)" gap={3} textAlign="center">
           <Box>
-            <Text fontSize="xl" fontWeight="bold">
+            <Text fontSize="xl" fontWeight="bold" mb={-1}>
               {currencyFormatter.format(spent)}
             </Text>
             <Text fontSize="sm" color="fg.muted">
@@ -132,7 +132,7 @@ function RoomDetailPage() {
             </Text>
           </Box>
           <Box>
-            <Text fontSize="xl" fontWeight="bold">
+            <Text fontSize="xl" fontWeight="bold" mb={-1}>
               {currencyFormatter.format(planned)}
             </Text>
             <Text fontSize="sm" color="fg.muted">
@@ -140,7 +140,7 @@ function RoomDetailPage() {
             </Text>
           </Box>
           <Box>
-            <Text fontSize="xl" fontWeight="bold">
+            <Text fontSize="xl" fontWeight="bold" mb={-1}>
               {currencyFormatter.format(budget)}
             </Text>
             <Text fontSize="sm" color="fg.muted">
@@ -155,9 +155,8 @@ function RoomDetailPage() {
             position="absolute"
             inset="0"
             bg="transparent"
-            borderWidth="2px"
-            borderStyle="dashed"
-            borderColor="border"
+            borderWidth="3px"
+            borderColor="#CF4173"
             borderRadius="full"
             width={`${budgetPct}%`}
           />
@@ -180,8 +179,7 @@ function RoomDetailPage() {
               boxSize="2.5"
               borderRadius="full"
               borderWidth="1.5px"
-              borderStyle="dashed"
-              borderColor="border"
+              borderColor="#CF4173"
             />
             <Text fontSize="xs" color="fg.muted">
               budżet
