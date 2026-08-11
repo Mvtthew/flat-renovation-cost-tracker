@@ -87,12 +87,11 @@ function RoomsDonutChart({ segments, centerLabel, total, formatValue, showLabels
               content={<Chart.Tooltip hideLabel formatter={(value) => formatValue(Number(value))} />}
             />
             <Pie
+              isAnimationActive={false}
               data={chart.data}
-              animationDuration={800}
-              animationBegin={0}
               dataKey={chart.key('value')}
               nameKey={chart.key('name')}
-              innerRadius="75%"
+              innerRadius="70%"
               outerRadius="100%"
               paddingAngle={2}
               cornerRadius={5}
