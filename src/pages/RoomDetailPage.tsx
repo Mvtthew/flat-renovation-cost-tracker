@@ -438,7 +438,6 @@ function RoomDetailPage() {
               total={planned}
               centerLabel="zaplanowano"
               formatValue={currencyFormatter.format}
-              showLabels={false}
             />
           </Box>
           <VStack gap={2} align="stretch">

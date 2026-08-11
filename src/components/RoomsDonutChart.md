@@ -20,7 +20,11 @@ here.
 ## Props
 
 - `segments: DonutSegment[]` — `{ id, label, value }[]`, one per room. Segments
-  with `value <= 0` are dropped. Segments are colored in **input order** from
+  with `value <= 0` are dropped. A segment with an empty-string `label` (e.g.
+  [RoomDetailPage](../pages/RoomDetailPage.md)'s "no tag" bucket) still
+  renders its slice but is skipped by the `showLabels` point-label render
+  prop, so untagged cost isn't labeled while still contributing to the
+  ring/total. Segments are colored in **input order** from
   the app's 3 brand colors (`#5D3140`, `#CF4173`, `#F39399` — never reassigned
   by value/rank, so a room keeps its color across re-renders) — pass segments
   pre-sorted (e.g. by descending value) if a specific slice order matters.
