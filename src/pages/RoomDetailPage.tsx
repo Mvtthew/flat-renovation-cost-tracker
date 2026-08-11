@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Tag, TagsInput, Text, VStack, Wrap } from '@chakra-ui/react'
+import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Tag, Text, VStack, Wrap } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -26,9 +26,11 @@ import type { PlanItem } from './PlanItemFormPage'
 import type { Shop } from './ShopFormPage'
 import type { Invoice } from './InvoiceFormPage'
 import SortableList from '../components/SortableList'
+import TagsInputWithSuggestions from '../components/TagsInputWithSuggestions'
 import SwipeableRow from '../components/SwipeableRow'
 import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
 import RoomsDonutChart from '../components/RoomsDonutChart'
+import StatBox from '../components/StatBox'
 
 const ROOMS_PATH = 'settings/rooms'
 const PLAN_ITEMS_PATH = 'planItems'
@@ -59,40 +61,6 @@ function formatRelativeTarget(targetDate: string): string {
   return relativeTimeFormatter.format(diffDays, 'day')
 }
 
-function StatBox({
-  value,
-  label,
-  variant = 'outline',
-  icon: Icon,
-}: {
-  value: string
-  label: string
-  variant?: 'outline' | 'solid'
-  icon?: typeof BoxIcon
-}) {
-  const isSolid = variant === 'solid'
-  return (
-    <Box
-      borderWidth={isSolid ? '3px' : '2px'}
-      borderColor="border"
-      bg={isSolid ? 'primary.solid' : undefined}
-      borderRadius="lg"
-      py={2}
-      textAlign="center"
-    >
-      <HStack justify="center" gap={1.5} mb={-2}>
-        <Text fontSize="lg" fontWeight="black" color={isSolid ? 'white' : undefined}>
-          {value}
-        </Text>
-        {Icon && <Icon width={16} height={16} color={isSolid ? 'white' : undefined} />}
-      </HStack>
-      <Text fontSize="sm" color={isSolid ? 'whiteAlpha.800' : 'fg.muted'}>
-        {label}
-      </Text>
-    </Box>
-  )
-}
-
 function RoomDetailPage() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
@@ -105,6 +73,7 @@ function RoomDetailPage() {
   const [notesEntry, setNotesEntry] = useState<{ title: string; notes: string } | null>(null)
   const [activeTags, setActiveTags] = useState<string[]>([])
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
+  const [existingTags, setExistingTags] = useState<string[]>([])
   const [addTagModalOpen, setAddTagModalOpen] = useState(false)
   const [addTagValue, setAddTagValue] = useState<string[]>([])
   const [addTagInputValue, setAddTagInputValue] = useState('')
@@ -133,6 +102,17 @@ function RoomDetailPage() {
       setPlanItems(items)
     })
   }, [roomId])
+
+  useEffect(() => {
+    return onValue(ref(database, PLAN_ITEMS_PATH), (snapshot) => {
+      const value = snapshot.val() as Record<string, Omit<PlanItem, 'id'>> | null
+      const tagSet = new Set<string>()
+      if (value) {
+        Object.values(value).forEach((item) => item.tags?.forEach((tag) => tagSet.add(tag)))
+      }
+      setExistingTags([...tagSet].sort((a, b) => a.localeCompare(b, 'pl')))
+    })
+  }, [])
 
   useEffect(() => {
     return onValue(ref(database, SHOPS_PATH), (snapshot) => {
@@ -462,10 +442,10 @@ function RoomDetailPage() {
             />
           </Box>
           <VStack gap={2} align="stretch">
-            <StatBox variant="solid" value={currencyFormatter.format(spent)} label="wydano" />
-            {hasBudget && <StatBox value={currencyFormatter.format(budget)} label="budżet" />}
-            <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} />
-            <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} />
+            <StatBox variant="solid" value={currencyFormatter.format(spent)} label="wydano" py={2} />
+            {hasBudget && <StatBox value={currencyFormatter.format(budget)} label="budżet" py={2} borderWidth="2px" />}
+            <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
+            <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
           </VStack>
         </Grid>
         <Box mt={4}>
@@ -690,29 +670,13 @@ function RoomDetailPage() {
                 <Dialog.Title>Dodaj tag do zaznaczonych ({selectedItemIds.length})</Dialog.Title>
               </Dialog.Header>
               <Dialog.Body>
-                <TagsInput.Root
+                <TagsInputWithSuggestions
                   value={addTagValue}
-                  onValueChange={(details) => setAddTagValue(details.value)}
+                  onValueChange={setAddTagValue}
                   inputValue={addTagInputValue}
-                  onInputValueChange={(details) => setAddTagInputValue(details.inputValue)}
-                  colorPalette="primary"
-                >
-                  <TagsInput.Control borderWidth="2px">
-                    {addTagValue.map((tag, index) => (
-                      <TagsInput.Item key={tag} index={index} value={tag}>
-                        <TagsInput.ItemPreview>
-                          <TagsInput.ItemText>{tag}</TagsInput.ItemText>
-                          <TagsInput.ItemDeleteTrigger />
-                        </TagsInput.ItemPreview>
-                        <TagsInput.ItemInput />
-                      </TagsInput.Item>
-                    ))}
-                    <TagsInput.Input
-                      placeholder="Dodaj tag i wciśnij Enter"
-                      _placeholder={{ color: 'rgba(93, 49, 64, 0.5)' }}
-                    />
-                  </TagsInput.Control>
-                </TagsInput.Root>
+                  onInputValueChange={setAddTagInputValue}
+                  existingTags={existingTags}
+                />
               </Dialog.Body>
               <Dialog.Footer>
                 <Button variant="ghost" onClick={() => setAddTagModalOpen(false)}>

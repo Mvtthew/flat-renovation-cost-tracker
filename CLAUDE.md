@@ -70,6 +70,8 @@ For every new component, create a sibling `.md` file (e.g. `src/components/CostL
 - [AppDatePicker](src/components/AppDatePicker.md)
 - [SpentVsPlannedBar](src/components/SpentVsPlannedBar.md)
 - [SpentPlannedBudgetBar](src/components/SpentPlannedBudgetBar.md)
+- [StatBox](src/components/StatBox.md)
+- [TagsInputWithSuggestions](src/components/TagsInputWithSuggestions.md)
 - [HomePage](src/pages/HomePage.md)
 - [RoomDetailPage](src/pages/RoomDetailPage.md)
 - [PlanPage](src/pages/PlanPage.md)

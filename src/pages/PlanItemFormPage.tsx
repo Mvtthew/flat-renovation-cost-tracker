@@ -9,7 +9,6 @@ import {
   Portal,
   SegmentGroup,
   Select,
-  TagsInput,
   Text,
   Textarea,
   VStack,
@@ -20,6 +19,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Box as BoxIcon, CirclePlus, Xmark } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import AppDatePicker from '../components/AppDatePicker'
+import TagsInputWithSuggestions from '../components/TagsInputWithSuggestions'
 import type { Room } from './RoomFormPage'
 import type { Shop, PickupType } from './ShopFormPage'
 
@@ -133,14 +133,6 @@ function PlanItemFormPage() {
   const isDelivery = pickupType === 'delivery'
 
   const canSave = useMemo(() => Boolean(roomId && name.trim()), [roomId, name])
-
-  const tagSuggestions = useMemo(() => {
-    const query = tagInputValue.trim().toLowerCase()
-    if (!query) return []
-    return existingTags
-      .filter((tag) => tag.toLowerCase().includes(query) && !tags.includes(tag))
-      .slice(0, 6)
-  }, [existingTags, tagInputValue, tags])
 
   const roomsCollection = useMemo(
     () =>
@@ -351,70 +343,18 @@ function PlanItemFormPage() {
           />
         </Box>
 
-        <Box position="relative">
+        <Box>
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Tagi
           </Text>
-          <TagsInput.Root
+          <TagsInputWithSuggestions
             value={tags}
-            onValueChange={(details) => setTags(details.value)}
+            onValueChange={setTags}
             inputValue={tagInputValue}
-            onInputValueChange={(details) => setTagInputValue(details.inputValue)}
+            onInputValueChange={setTagInputValue}
+            existingTags={existingTags}
             disabled={loading}
-            colorPalette="primary"
-          >
-            <TagsInput.Control borderWidth="2px">
-              {tags.map((tag, index) => (
-                <TagsInput.Item key={tag} index={index} value={tag}>
-                  <TagsInput.ItemPreview>
-                    <TagsInput.ItemText>{tag}</TagsInput.ItemText>
-                    <TagsInput.ItemDeleteTrigger />
-                  </TagsInput.ItemPreview>
-                  <TagsInput.ItemInput />
-                </TagsInput.Item>
-              ))}
-              <TagsInput.Input
-                placeholder="Dodaj tag i wciśnij Enter"
-                _placeholder={{ color: 'rgba(93, 49, 64, 0.5)' }}
-              />
-            </TagsInput.Control>
-          </TagsInput.Root>
-          {tagSuggestions.length > 0 && (
-            <Box
-              position="absolute"
-              top="100%"
-              left={0}
-              right={0}
-              mt={1}
-              zIndex={1}
-              bg="bg"
-              borderWidth="2px"
-              borderColor="border"
-              borderRadius="md"
-              overflow="hidden"
-              boxShadow="md"
-            >
-              {tagSuggestions.map((tag) => (
-                <Box
-                  key={tag}
-                  display="block"
-                  w="full"
-                  textAlign="left"
-                  px={3}
-                  py={2}
-                  cursor="pointer"
-                  _hover={{ bg: 'primary.subtle' }}
-                  onMouseDown={(event) => {
-                    event.preventDefault()
-                    setTags([...tags, tag])
-                    setTagInputValue('')
-                  }}
-                >
-                  {tag}
-                </Box>
-              ))}
-            </Box>
-          )}
+          />
         </Box>
 
         <Box>
