@@ -33,8 +33,15 @@ here.
   "zaplanowano").
 - `formatValue: (value: number) => string` — formats both the center total and
   the tooltip/legend values (e.g. a `pl-PL` PLN `Intl.NumberFormat`).
+- `showLabels?: boolean` — defaults to `true`. When `false`, `Pie`'s `label`
+  render prop is set to `false` (no per-slice room-name labels drawn around
+  the ring) — used where the chart is small/dense and a legend elsewhere
+  already identifies the rooms.
 
 ## Use cases
 
 - [PlanPage](../pages/PlanPage.md)'s "Zaplanowane koszty wg pomieszczeń"
   report — planned cost per room.
+- [HomePage](../pages/HomePage.md)'s two-column summary (donut on the left,
+  stat rows on the right) — renders with `showLabels={false}` since the chart
+  is smaller there and slice labels would crowd it.

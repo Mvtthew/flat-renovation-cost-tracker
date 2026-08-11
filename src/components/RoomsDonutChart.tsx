@@ -14,6 +14,7 @@ interface RoomsDonutChartProps {
   centerLabel: string
   total: number
   formatValue: (value: number) => string
+  showLabels?: boolean
 }
 
 // Fixed brand order — never cycled or reassigned by value/rank, so a room
@@ -42,7 +43,7 @@ const SLOT_COLORS = [
 ]
 const OTHER_COLOR = '#ecd3db' // primary.100, reserved for the folded "Inne" slice
 
-function RoomsDonutChart({ segments, centerLabel, total, formatValue }: RoomsDonutChartProps) {
+function RoomsDonutChart({ segments, centerLabel, total, formatValue, showLabels = true }: RoomsDonutChartProps) {
   const withValue = segments.filter((segment) => segment.value > 0)
 
   const topSegments = withValue.slice(0, SLOT_COLORS.length)
@@ -88,17 +89,21 @@ function RoomsDonutChart({ segments, centerLabel, total, formatValue }: RoomsDon
             paddingAngle={2}
             cornerRadius={5}
             strokeWidth={0}
-            label={({ name, x, y, textAnchor }: PieLabelRenderProps) => (
-              <text
-                x={x}
-                y={y}
-                fill="var(--chakra-colors-fg-muted)"
-                textAnchor={textAnchor ?? 'middle'}
-                dominantBaseline="central"
-              >
-                {name}
-              </text>
-            )}
+            label={
+              showLabels
+                ? ({ name, x, y, textAnchor }: PieLabelRenderProps) => (
+                    <text
+                      x={x}
+                      y={y}
+                      fill="var(--chakra-colors-fg-muted)"
+                      textAnchor={textAnchor ?? 'middle'}
+                      dominantBaseline="central"
+                    >
+                      {name}
+                    </text>
+                  )
+                : false
+            }
             activeShape={(shapeProps: React.ComponentProps<typeof Sector>) => (
               <Sector {...shapeProps} outerRadius={Number(shapeProps.outerRadius) + 6} />
             )}

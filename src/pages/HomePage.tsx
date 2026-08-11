@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom'
 import { database } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth'
 import PageTitle from '../components/PageTitle'
+import RoomsDonutChart from '../components/RoomsDonutChart'
 import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Invoice } from './InvoiceFormPage'
@@ -231,6 +232,10 @@ function HomePage() {
     }
   })
 
+  const roomSegments = rooms
+    .map((room) => ({ id: room.id, label: room.name, value: room.planned }))
+    .sort((a, b) => b.value - a.value)
+
   const sortedRooms =
     roomsSortOrder === 'none'
       ? rooms
@@ -256,28 +261,23 @@ function HomePage() {
           <Avatar.Fallback name={user?.displayName ?? user?.email ?? undefined} />
         </Avatar.Root>
       </HStack>
-      <Text fontSize="2xl" fontWeight="bold" mb={2}>
-        Podsumowanie
-      </Text>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <StatBox
-          variant="solid"
-          color="#5D3140"
-          value={currencyFormatter.format(spent)}
-          label="wydano"
-        />
-        <StatBox
-          variant="solid"
-          color="#CF4173"
-          value={currencyFormatter.format(planned)}
-          label="zaplanowano"
-        />
-        <StatBox
-          value={currencyFormatter.format(budget)}
-          label="budżet"
-          color="#CF4173"
-        />
+      <Grid templateColumns="1fr 1fr" gap={4} alignItems="center">
+        <Box>
+          <RoomsDonutChart
+            segments={roomSegments}
+            total={planned}
+            centerLabel="zaplanowano"
+            formatValue={currencyFormatter.format}
+            showLabels={false}
+          />
+        </Box>
+        <VStack gap={2} align="stretch">
+          <StatBox variant="solid" color="#5D3140" value={currencyFormatter.format(spent)} label="wydano" />
+          <StatBox variant="solid" color="#CF4173" value={currencyFormatter.format(planned)} label="zaplanowano" />
+          <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
+          <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
+        </VStack>
       </Grid>
 
       <Box mt={4}>
@@ -290,15 +290,8 @@ function HomePage() {
         />
       </Box>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2} mt={8}>
-        <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
-        <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
-        <StatBox value={String(rooms.length)} label="pokoje" icon={Circles4Square} py={2} borderWidth="2px" />
-      </Grid>
-
       <HStack fontWeight="bold" mt={8} mb={3} justify="space-between">
         <HStack gap={2}>
-          <Circles4Square width={18} height={18} />
           <Text>Pomieszczenia</Text>
         </HStack>
         <IconButton
