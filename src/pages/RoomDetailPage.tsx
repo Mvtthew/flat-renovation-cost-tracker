@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Tag, TagsInput, Text, Wrap } from '@chakra-ui/react'
+import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Tag, TagsInput, Text, VStack, Wrap } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -7,6 +7,7 @@ import {
   Box as BoxIcon,
   Calendar,
   CircleMinus,
+  FileDollar,
   FilePlus,
   FileText,
   Hourglass,
@@ -27,6 +28,7 @@ import type { Invoice } from './InvoiceFormPage'
 import SortableList from '../components/SortableList'
 import SwipeableRow from '../components/SwipeableRow'
 import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
+import RoomsDonutChart from '../components/RoomsDonutChart'
 
 const ROOMS_PATH = 'settings/rooms'
 const PLAN_ITEMS_PATH = 'planItems'
@@ -44,6 +46,8 @@ const relativeTimeFormatter = new Intl.RelativeTimeFormat('pl-PL', { numeric: 'a
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 
+const NO_TAG_LABEL = ''
+
 function formatRelativeTarget(targetDate: string): string {
   const diffDays = Math.round(
     (new Date(targetDate).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / MS_PER_DAY,
@@ -53,6 +57,40 @@ function formatRelativeTarget(targetDate: string): string {
   const diffMonths = Math.round(diffDays / 30)
   if (Math.abs(diffMonths) >= 1) return relativeTimeFormatter.format(diffMonths, 'month')
   return relativeTimeFormatter.format(diffDays, 'day')
+}
+
+function StatBox({
+  value,
+  label,
+  variant = 'outline',
+  icon: Icon,
+}: {
+  value: string
+  label: string
+  variant?: 'outline' | 'solid'
+  icon?: typeof BoxIcon
+}) {
+  const isSolid = variant === 'solid'
+  return (
+    <Box
+      borderWidth={isSolid ? '3px' : '2px'}
+      borderColor="border"
+      bg={isSolid ? 'primary.solid' : undefined}
+      borderRadius="lg"
+      py={2}
+      textAlign="center"
+    >
+      <HStack justify="center" gap={1.5} mb={-2}>
+        <Text fontSize="lg" fontWeight="black" color={isSolid ? 'white' : undefined}>
+          {value}
+        </Text>
+        {Icon && <Icon width={16} height={16} color={isSolid ? 'white' : undefined} />}
+      </HStack>
+      <Text fontSize="sm" color={isSolid ? 'whiteAlpha.800' : 'fg.muted'}>
+        {label}
+      </Text>
+    </Box>
+  )
 }
 
 function RoomDetailPage() {
@@ -230,6 +268,19 @@ function RoomDetailPage() {
     [invoices],
   )
 
+  const tagSegments = useMemo(() => {
+    const totals = new Map<string, number>()
+    planItems.forEach((item) => {
+      const cost = (item.price ?? 0) * (item.amount ?? 1) + (item.pickupType === 'delivery' ? (item.deliveryCost ?? 0) : 0)
+      const tags = item.tags && item.tags.length > 0 ? item.tags : [NO_TAG_LABEL]
+      const share = cost / tags.length
+      tags.forEach((tag) => totals.set(tag, (totals.get(tag) ?? 0) + share))
+    })
+    return [...totals.entries()]
+      .map(([tag, value]) => ({ id: tag, label: tag, value }))
+      .sort((a, b) => b.value - a.value)
+  }, [planItems])
+
   const renderPlanItemRow = (item: PlanItem, isLast: boolean) => (
     <SwipeableRow
       key={item.id}
@@ -379,6 +430,7 @@ function RoomDetailPage() {
     )
   }
 
+  const hasBudget = Boolean(room?.budget)
   const budget = room?.budget ?? 0
   const RoomIcon = getRoomIcon(room?.icon)
 
@@ -398,32 +450,23 @@ function RoomDetailPage() {
         </HStack>
       </HStack>
 
-      <Box borderWidth="3px" borderColor="border" borderRadius="lg" p={4}>
-        <Grid templateColumns="repeat(3, 1fr)" gap={3} textAlign="center">
+      <Box>
+        <Grid templateColumns="3fr 2fr" gap={4} alignItems="start">
           <Box>
-            <Text fontSize="xl" fontWeight="bold" mb={-1}>
-              {currencyFormatter.format(spent)}
-            </Text>
-            <Text fontSize="sm" color="fg.muted">
-              wydano
-            </Text>
+            <RoomsDonutChart
+              segments={tagSegments}
+              total={planned}
+              centerLabel="zaplanowano"
+              formatValue={currencyFormatter.format}
+              showLabels={false}
+            />
           </Box>
-          <Box>
-            <Text fontSize="xl" fontWeight="bold" mb={-1}>
-              {currencyFormatter.format(planned)}
-            </Text>
-            <Text fontSize="sm" color="fg.muted">
-              zaplanowano
-            </Text>
-          </Box>
-          <Box>
-            <Text fontSize="xl" fontWeight="bold" mb={-1}>
-              {currencyFormatter.format(budget)}
-            </Text>
-            <Text fontSize="sm" color="fg.muted">
-              budżet
-            </Text>
-          </Box>
+          <VStack gap={2} align="stretch">
+            <StatBox variant="solid" value={currencyFormatter.format(spent)} label="wydano" />
+            {hasBudget && <StatBox value={currencyFormatter.format(budget)} label="budżet" />}
+            <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} />
+            <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} />
+          </VStack>
         </Grid>
         <Box mt={4}>
           <SpentPlannedBudgetBar

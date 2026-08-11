@@ -284,7 +284,7 @@ function HomePage() {
         </HStack>
       </HStack>
 
-      <Grid templateColumns="3fr 2fr" gap={4} alignItems="center">
+      <Grid templateColumns="3fr 2fr" gap={4} alignItems="start">
         <Box>
           <RoomsDonutChart
             segments={roomSegments}

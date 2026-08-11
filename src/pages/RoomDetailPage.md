@@ -1,6 +1,10 @@
 # RoomDetailPage
 
-Room detail page rendered at `/pokoje/:roomId`, reached by tapping a room row in [HomePage](HomePage.md)'s "Pomieszczenia" list. Follows the lofi "Room detail" mockup: a back arrow + room name header, a bordered stat box (spent / planned / budget + a [SpentPlannedBudgetBar](../components/SpentPlannedBudgetBar.md)), and two list sections ("Zaplanowane pozycje" and "Faktury").
+Room detail page rendered at `/pokoje/:roomId`, reached by tapping a room row in [HomePage](HomePage.md)'s "Pomieszczenia" list. Follows the lofi "Room detail" mockup: a back arrow + room name header, then a `HomePage`-style summary — a `3fr 2fr` `Grid` (top-aligned via `alignItems="start"`) with a [RoomsDonutChart](../components/RoomsDonutChart.md) (labels hidden, `showLabels={false}`) breaking this room's planned cost down by plan-item tag on the left, and a stacked column of stat boxes on the right (solid "wydano", outline "budżet" — only when the room has a `budget` set — then outline "pozycje"/"faktury" counts with `BoxIcon`/`FileDollar` icons, mirroring `HomePage`'s local `StatBox`) — followed by a [SpentPlannedBudgetBar](../components/SpentPlannedBudgetBar.md), then two list sections ("Zaplanowane pozycje" and "Faktury").
+
+### Tag donut chart
+
+Reuses [RoomsDonutChart](../components/RoomsDonutChart.md) (the same component as `HomePage`'s per-room donut) but with segments keyed by plan-item tag instead of by room. For each plan item, its cost (`price × amount` plus delivery cost when applicable) is split evenly across all of its `tags`; items with no tags contribute their full cost to a single unlabeled (empty-string label) segment. Segment values are computed client-side in a `useMemo` over `planItems` (independent of the `activeTags` list-filter state below) so the chart always reflects the whole room, and are summed into a `Map<tag, value>` before being turned into `DonutSegment`s and sorted descending by value. Because per-item costs are split (not duplicated) across multi-tag items, segment values always sum to exactly `planned`, matching the chart's center total.
 
 ## Data
 
