@@ -59,7 +59,9 @@ function InvoiceFormPage() {
 
   const [loading, setLoading] = useState(Boolean(invoiceId))
   const [roomId, setRoomId] = useState(searchParams.get('roomId') ?? '')
-  const [linkedItemIds, setLinkedItemIds] = useState<string[]>([])
+  const [linkedItemIds, setLinkedItemIds] = useState<string[]>(
+    searchParams.get('itemIds')?.split(',').filter(Boolean) ?? [],
+  )
   const [pickupType, setPickupType] = useState<PickupType>('in-store')
   const [title, setTitle] = useState('')
   const [realCost, setRealCost] = useState('')

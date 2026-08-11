@@ -10,7 +10,7 @@ Exports the `Invoice` type alongside the default component.
 
 ## Props
 
-None — reads `invoiceId` from the route via `useParams` and an optional `roomId` query param (add mode only, to preselect the room) via `useSearchParams`.
+None — reads `invoiceId` from the route via `useParams` and, in add mode only, optional `roomId` and `itemIds` query params via `useSearchParams` to preselect the room and linked plan items — `itemIds` is a comma-separated list of plan item ids, split/filtered into the initial `linkedItemIds` state (see [RoomDetailPage](RoomDetailPage.md)'s bulk selection "Dodaj fakturę" action, which links to `/faktury/nowa?roomId=...&itemIds=id1,id2,...`).
 
 ## Use cases
 

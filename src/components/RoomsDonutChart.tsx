@@ -99,16 +99,16 @@ function RoomsDonutChart({ segments, centerLabel, total, formatValue, showLabels
               label={
                 showLabels
                   ? ({ name, x, y, textAnchor }: PieLabelRenderProps) => (
-                      <text
-                        x={x}
-                        y={y}
-                        fill="var(--chakra-colors-fg-muted)"
-                        textAnchor={textAnchor ?? 'middle'}
-                        dominantBaseline="central"
-                      >
-                        {truncateLabel(String(name))}
-                      </text>
-                    )
+                    <text
+                      x={x}
+                      y={y}
+                      fill="var(--chakra-colors-fg-muted)"
+                      textAnchor={textAnchor ?? 'middle'}
+                      dominantBaseline="central"
+                    >
+                      {truncateLabel(String(name))}
+                    </text>
+                  )
                   : false
               }
               activeShape={(shapeProps: React.ComponentProps<typeof Sector>) => (
@@ -120,7 +120,7 @@ function RoomsDonutChart({ segments, centerLabel, total, formatValue, showLabels
               ))}
               <Label
                 content={({ viewBox }) => (
-                  <Chart.RadialText viewBox={viewBox} title={formatValue(total)} fontSize='26px' description={centerLabel} />
+                  <Chart.RadialText viewBox={viewBox} title={formatValue(total)} fontSize='26px' gap={18} description={centerLabel} />
                 )}
               />
             </Pie>

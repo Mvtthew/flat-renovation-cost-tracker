@@ -9,6 +9,7 @@ import {
   Portal,
   SegmentGroup,
   Select,
+  TagsInput,
   Text,
   Textarea,
   VStack,
@@ -35,6 +36,7 @@ export interface PlanItem {
   price?: number
   amount?: number
   notes?: string
+  tags?: string[]
   targetDate?: string
   pickupType: PickupType
   deliveryCost?: number
@@ -51,6 +53,7 @@ function PlanItemFormPage() {
 
   const [rooms, setRooms] = useState<Room[]>([])
   const [shops, setShops] = useState<Shop[]>([])
+  const [existingTags, setExistingTags] = useState<string[]>([])
 
   const [loading, setLoading] = useState(Boolean(itemId))
   const [roomId, setRoomId] = useState(searchParams.get('roomId') ?? '')
@@ -60,6 +63,8 @@ function PlanItemFormPage() {
   const [price, setPrice] = useState('')
   const [amount, setAmount] = useState('1')
   const [notes, setNotes] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInputValue, setTagInputValue] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [pickupType, setPickupType] = useState<PickupType>('in-store')
   const [deliveryCost, setDeliveryCost] = useState('')
@@ -89,6 +94,17 @@ function PlanItemFormPage() {
   }, [])
 
   useEffect(() => {
+    return onValue(ref(database, PLAN_ITEMS_PATH), (snapshot) => {
+      const value = snapshot.val() as Record<string, Omit<PlanItem, 'id'>> | null
+      const tagSet = new Set<string>()
+      if (value) {
+        Object.values(value).forEach((item) => item.tags?.forEach((tag) => tagSet.add(tag)))
+      }
+      setExistingTags([...tagSet].sort((a, b) => a.localeCompare(b, 'pl')))
+    })
+  }, [])
+
+  useEffect(() => {
     if (!itemId) return
     let cancelled = false
     get(ref(database, `${PLAN_ITEMS_PATH}/${itemId}`)).then((snapshot) => {
@@ -101,6 +117,7 @@ function PlanItemFormPage() {
       setPrice(typeof value?.price === 'number' ? String(value.price) : '')
       setAmount(typeof value?.amount === 'number' ? String(value.amount) : '1')
       setNotes(value?.notes ?? '')
+      setTags(value?.tags ?? [])
       setTargetDate(value?.targetDate ?? '')
       setPickupType(value?.pickupType ?? 'in-store')
       setDeliveryCost(typeof value?.deliveryCost === 'number' ? String(value.deliveryCost) : '')
@@ -116,6 +133,14 @@ function PlanItemFormPage() {
   const isDelivery = pickupType === 'delivery'
 
   const canSave = useMemo(() => Boolean(roomId && name.trim()), [roomId, name])
+
+  const tagSuggestions = useMemo(() => {
+    const query = tagInputValue.trim().toLowerCase()
+    if (!query) return []
+    return existingTags
+      .filter((tag) => tag.toLowerCase().includes(query) && !tags.includes(tag))
+      .slice(0, 6)
+  }, [existingTags, tagInputValue, tags])
 
   const roomsCollection = useMemo(
     () =>
@@ -147,6 +172,7 @@ function PlanItemFormPage() {
       price: price === '' ? 0 : Number(price),
       amount: amount === '' ? 1 : Number(amount),
       notes: notes.trim(),
+      tags,
       targetDate,
       pickupType,
       deliveryCost: deliveryCost === '' ? 0 : Number(deliveryCost),
@@ -323,6 +349,72 @@ function PlanItemFormPage() {
             rows={3}
             disabled={loading}
           />
+        </Box>
+
+        <Box position="relative">
+          <Text fontSize="sm" color="fg.muted" mb={1}>
+            Tagi
+          </Text>
+          <TagsInput.Root
+            value={tags}
+            onValueChange={(details) => setTags(details.value)}
+            inputValue={tagInputValue}
+            onInputValueChange={(details) => setTagInputValue(details.inputValue)}
+            disabled={loading}
+            colorPalette="primary"
+          >
+            <TagsInput.Control borderWidth="2px">
+              {tags.map((tag, index) => (
+                <TagsInput.Item key={tag} index={index} value={tag}>
+                  <TagsInput.ItemPreview>
+                    <TagsInput.ItemText>{tag}</TagsInput.ItemText>
+                    <TagsInput.ItemDeleteTrigger />
+                  </TagsInput.ItemPreview>
+                  <TagsInput.ItemInput />
+                </TagsInput.Item>
+              ))}
+              <TagsInput.Input
+                placeholder="Dodaj tag i wciśnij Enter"
+                _placeholder={{ color: 'rgba(93, 49, 64, 0.5)' }}
+              />
+            </TagsInput.Control>
+          </TagsInput.Root>
+          {tagSuggestions.length > 0 && (
+            <Box
+              position="absolute"
+              top="100%"
+              left={0}
+              right={0}
+              mt={1}
+              zIndex={1}
+              bg="bg"
+              borderWidth="2px"
+              borderColor="border"
+              borderRadius="md"
+              overflow="hidden"
+              boxShadow="md"
+            >
+              {tagSuggestions.map((tag) => (
+                <Box
+                  key={tag}
+                  display="block"
+                  w="full"
+                  textAlign="left"
+                  px={3}
+                  py={2}
+                  cursor="pointer"
+                  _hover={{ bg: 'primary.subtle' }}
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                    setTags([...tags, tag])
+                    setTagInputValue('')
+                  }}
+                >
+                  {tag}
+                </Box>
+              ))}
+            </Box>
+          )}
         </Box>
 
         <Box>

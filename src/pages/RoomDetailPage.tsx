@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Text } from '@chakra-ui/react'
+import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Tag, TagsInput, Text, Wrap } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Box as BoxIcon,
   Calendar,
+  CircleMinus,
+  FilePlus,
   FileText,
   Hourglass,
   Link as LinkIcon,
   Pencil,
   Receipt,
   ShoppingBasket,
+  Tag as TagIcon,
   Trolley,
   Xmark,
 } from '@gravity-ui/icons'
@@ -62,6 +65,13 @@ function RoomDetailPage() {
   const [shops, setShops] = useState<Shop[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [notesEntry, setNotesEntry] = useState<{ title: string; notes: string } | null>(null)
+  const [activeTags, setActiveTags] = useState<string[]>([])
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
+  const [addTagModalOpen, setAddTagModalOpen] = useState(false)
+  const [addTagValue, setAddTagValue] = useState<string[]>([])
+  const [addTagInputValue, setAddTagInputValue] = useState('')
+  const [removeTagModalOpen, setRemoveTagModalOpen] = useState(false)
+  const [tagsToRemove, setTagsToRemove] = useState<string[]>([])
 
   useEffect(() => {
     if (!roomId) return
@@ -125,6 +135,81 @@ function RoomDetailPage() {
     update(ref(database), updates)
   }
 
+  const toggleTag = (tag: string) => {
+    setActiveTags((current) =>
+      current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
+    )
+  }
+
+  const toggleSelectItem = (itemId: string) => {
+    setSelectedItemIds((current) =>
+      current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId],
+    )
+  }
+
+  const clearSelection = () => setSelectedItemIds([])
+
+  const selectedItems = useMemo(
+    () => planItems.filter((item) => selectedItemIds.includes(item.id)),
+    [planItems, selectedItemIds],
+  )
+
+  const selectedTags = useMemo(
+    () => [...new Set(selectedItems.flatMap((item) => item.tags ?? []))].sort((a, b) => a.localeCompare(b)),
+    [selectedItems],
+  )
+
+  const openAddTagModal = () => {
+    setAddTagValue([])
+    setAddTagInputValue('')
+    setAddTagModalOpen(true)
+  }
+
+  const confirmAddTags = () => {
+    if (addTagValue.length > 0) {
+      const updates: Record<string, string[]> = {}
+      selectedItems.forEach((item) => {
+        updates[`${PLAN_ITEMS_PATH}/${item.id}/tags`] = [...new Set([...(item.tags ?? []), ...addTagValue])]
+      })
+      update(ref(database), updates)
+    }
+    setAddTagModalOpen(false)
+    clearSelection()
+  }
+
+  const openRemoveTagModal = () => {
+    setTagsToRemove([])
+    setRemoveTagModalOpen(true)
+  }
+
+  const toggleTagToRemove = (tag: string) => {
+    setTagsToRemove((current) =>
+      current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
+    )
+  }
+
+  const confirmRemoveTags = () => {
+    if (tagsToRemove.length > 0) {
+      const updates: Record<string, string[]> = {}
+      selectedItems.forEach((item) => {
+        updates[`${PLAN_ITEMS_PATH}/${item.id}/tags`] = (item.tags ?? []).filter(
+          (tag) => !tagsToRemove.includes(tag),
+        )
+      })
+      update(ref(database), updates)
+    }
+    setRemoveTagModalOpen(false)
+    clearSelection()
+  }
+
+  const filteredPlanItems = useMemo(
+    () =>
+      activeTags.length === 0
+        ? planItems
+        : planItems.filter((item) => activeTags.every((tag) => item.tags?.includes(tag))),
+    [planItems, activeTags],
+  )
+
   const planned = useMemo(
     () =>
       planItems.reduce(
@@ -143,6 +228,147 @@ function RoomDetailPage() {
         0,
       ),
     [invoices],
+  )
+
+  const renderPlanItemRow = (item: PlanItem, isLast: boolean) => (
+    <SwipeableRow
+      key={item.id}
+      borderBottomWidth={isLast ? undefined : '1px'}
+      borderColor="border"
+      onSwipeRight={() => toggleSelectItem(item.id)}
+      selected={selectedItemIds.includes(item.id)}
+      actions={[
+        ...(item.notes
+          ? [
+            {
+              label: 'Pokaż notatki',
+              icon: <FileText />,
+              onClick: () => setNotesEntry({ title: item.name, notes: item.notes ?? '' }),
+              colorPalette: 'gray',
+            },
+          ]
+          : []),
+        {
+          label: 'Edytuj pozycję',
+          icon: <Pencil />,
+          onClick: () => navigate(`/pozycje/${item.id}`),
+        },
+      ]}
+    >
+      <HStack
+        justify="space-between"
+        py={3}
+      >
+        <HStack gap={3}>
+          <Box
+            boxSize="6"
+            minW="6"
+            flexShrink={0}
+            display="flex"
+            alignItems="center"
+            mb={'auto'}
+            mt={0.5}
+            justifyContent="center"
+            color="primary.300"
+          >
+            <BoxIcon />
+          </Box>
+          <Box>
+            <Text fontSize={'md'}>{item.name}</Text>
+            {item.tags && item.tags.length > 0 && (
+              <Wrap gap={1} my={1}>
+                {item.tags.map((tag) => (
+                  <Tag.Root
+                    key={tag}
+                    size="sm"
+                    colorPalette="primary"
+                    variant="solid"
+                    cursor="pointer"
+                    outline={activeTags.includes(tag) ? '2px solid' : undefined}
+                    outlineOffset="1px"
+                    outlineColor="primary.700"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      toggleTag(tag)
+                    }}
+                  >
+                    <Tag.Label>{tag}</Tag.Label>
+                  </Tag.Root>
+                ))}
+              </Wrap>
+            )}
+            <Text fontSize="sm" color="fg.muted">
+              {currencyFormatter.format((item.price ?? 0) * (item.amount ?? 1))}
+              {(item.amount ?? 1) > 1 ? ` · ${item.amount} szt.` : ''}
+            </Text>
+            {item.shopId && (
+              <HStack gap={1} mt={0.5}>
+                <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                  <ShoppingBasket />
+                </Box>
+                <Text fontSize="xs" color="fg.muted">
+                  {shops.find((shop) => shop.id === item.shopId)?.name}
+                </Text>
+              </HStack>
+            )}
+            {item.pickupType === 'delivery' && (Boolean(item.deliveryCost) || Boolean(item.deliveryDays)) && (
+              <HStack gap={1} mt={0.5}>
+                {Boolean(item.deliveryCost) && (
+                  <>
+                    <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                      <Trolley />
+                    </Box>
+                    <Text fontSize="xs" color="fg.muted">
+                      {currencyFormatter.format(item.deliveryCost ?? 0)}
+                    </Text>
+                  </>
+                )}
+                {Boolean(item.deliveryCost) && Boolean(item.deliveryDays) && (
+                  <Text fontSize="xs" color="fg.muted">
+                    ·
+                  </Text>
+                )}
+                {Boolean(item.deliveryDays) && (
+                  <>
+                    <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                      <Hourglass />
+                    </Box>
+                    <Text fontSize="xs" color="fg.muted">
+                      {item.deliveryDays} dni
+                    </Text>
+                  </>
+                )}
+              </HStack>
+            )}
+            {item.targetDate && (
+              <HStack gap={1} mt={0.5}>
+                <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                  <Calendar />
+                </Box>
+                <Text fontSize="xs" color="fg.muted">
+                  {dateFormatter.format(new Date(item.targetDate))} (
+                  {formatRelativeTarget(item.targetDate)})
+                </Text>
+              </HStack>
+            )}
+          </Box>
+        </HStack>
+        <HStack gap={1}>
+          {item.link && (
+            <IconButton
+              asChild
+              aria-label="Otwórz link"
+              variant="ghost"
+              size="sm"
+            >
+              <a href={item.link} target="_blank" rel="noreferrer">
+                <LinkIcon />
+              </a>
+            </IconButton>
+          )}
+        </HStack>
+      </HStack>
+    </SwipeableRow>
   )
 
   if (loading) {
@@ -210,133 +436,43 @@ function RoomDetailPage() {
         </Box>
       </Box>
 
-      <HStack justify="space-between" mt={8} mb={3}>
-        <Text fontWeight="bold">Zaplanowane ({planItems.length})</Text>
+      <HStack justify="space-between" mt={8} mb={activeTags.length > 0 ? 2 : 3}>
+        <Text fontWeight="bold">Zaplanowane ({filteredPlanItems.length})</Text>
         <Button asChild colorPalette="primary" size="sm">
           <Link to={`/dodaj?roomId=${roomId}`}>+ Pozycja planu</Link>
         </Button>
       </HStack>
+      {activeTags.length > 0 && (
+        <Wrap gap={2} mb={3}>
+          {activeTags.map((tag) => (
+            <Tag.Root key={tag} colorPalette="primary" variant="solid" cursor="pointer" onClick={() => toggleTag(tag)}>
+              <Tag.Label>{tag}</Tag.Label>
+              <Tag.EndElement>
+                <Tag.CloseTrigger />
+              </Tag.EndElement>
+            </Tag.Root>
+          ))}
+        </Wrap>
+      )}
       {planItems.length === 0 ? (
         <Text fontSize="sm" color="fg.muted" py={2}>
           Brak zaplanowanych pozycji.
         </Text>
+      ) : filteredPlanItems.length === 0 ? (
+        <Text fontSize="sm" color="fg.muted" py={2}>
+          Brak pozycji z wybranymi tagami.
+        </Text>
+      ) : activeTags.length > 0 ? (
+        <Box>
+          {filteredPlanItems.map((item, index) =>
+            renderPlanItemRow(item, index === filteredPlanItems.length - 1),
+          )}
+        </Box>
       ) : (
         <SortableList
           items={planItems}
           onReorder={handleReorderPlanItems}
-          renderItem={(item) => (
-            <SwipeableRow
-              borderBottomWidth={item.id === planItems[planItems.length - 1].id ? undefined : '1px'}
-              borderColor="border"
-              actions={[
-                ...(item.notes
-                  ? [
-                    {
-                      label: 'Pokaż notatki',
-                      icon: <FileText />,
-                      onClick: () => setNotesEntry({ title: item.name, notes: item.notes ?? '' }),
-                      colorPalette: 'gray',
-                    },
-                  ]
-                  : []),
-                {
-                  label: 'Edytuj pozycję',
-                  icon: <Pencil />,
-                  onClick: () => navigate(`/pozycje/${item.id}`),
-                },
-              ]}
-            >
-              <HStack
-                justify="space-between"
-                py={3}
-              >
-                <HStack gap={3}>
-                  <Box
-                    boxSize="6"
-                    minW="6"
-                    flexShrink={0}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    color="primary.300"
-                  >
-                    <BoxIcon />
-                  </Box>
-                  <Box>
-                    <Text>{item.name}</Text>
-                    <Text fontSize="sm" color="fg.muted">
-                      {currencyFormatter.format((item.price ?? 0) * (item.amount ?? 1))}
-                      {(item.amount ?? 1) > 1 ? ` · ${item.amount} szt.` : ''}
-                    </Text>
-                    {item.shopId && (
-                      <HStack gap={1} mt={0.5}>
-                        <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                          <ShoppingBasket />
-                        </Box>
-                        <Text fontSize="xs" color="fg.muted">
-                          {shops.find((shop) => shop.id === item.shopId)?.name}
-                        </Text>
-                      </HStack>
-                    )}
-                    {item.pickupType === 'delivery' && (Boolean(item.deliveryCost) || Boolean(item.deliveryDays)) && (
-                      <HStack gap={1} mt={0.5}>
-                        {Boolean(item.deliveryCost) && (
-                          <>
-                            <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                              <Trolley />
-                            </Box>
-                            <Text fontSize="xs" color="fg.muted">
-                              {currencyFormatter.format(item.deliveryCost ?? 0)}
-                            </Text>
-                          </>
-                        )}
-                        {Boolean(item.deliveryCost) && Boolean(item.deliveryDays) && (
-                          <Text fontSize="xs" color="fg.muted">
-                            ·
-                          </Text>
-                        )}
-                        {Boolean(item.deliveryDays) && (
-                          <>
-                            <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                              <Hourglass />
-                            </Box>
-                            <Text fontSize="xs" color="fg.muted">
-                              {item.deliveryDays} dni
-                            </Text>
-                          </>
-                        )}
-                      </HStack>
-                    )}
-                    {item.targetDate && (
-                      <HStack gap={1} mt={0.5}>
-                        <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                          <Calendar />
-                        </Box>
-                        <Text fontSize="xs" color="fg.muted">
-                          {dateFormatter.format(new Date(item.targetDate))} (
-                          {formatRelativeTarget(item.targetDate)})
-                        </Text>
-                      </HStack>
-                    )}
-                  </Box>
-                </HStack>
-                <HStack gap={1}>
-                  {item.link && (
-                    <IconButton
-                      asChild
-                      aria-label="Otwórz link"
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <a href={item.link} target="_blank" rel="noreferrer">
-                        <LinkIcon />
-                      </a>
-                    </IconButton>
-                  )}
-                </HStack>
-              </HStack>
-            </SwipeableRow>
-          )}
+          renderItem={(item) => renderPlanItemRow(item, item.id === planItems[planItems.length - 1].id)}
         />
       )}
 
@@ -446,6 +582,151 @@ function RoomDetailPage() {
               <Dialog.Body>
                 <Text whiteSpace="pre-wrap">{notesEntry?.notes}</Text>
               </Dialog.Body>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="Zamknij" variant="ghost" size="sm" position="absolute" top={2} right={2}>
+                  <Xmark />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+
+      {selectedItemIds.length > 0 && (
+        <HStack
+          className="fixed inset-x-0"
+          bottom="84px"
+          justify="center"
+          gap={2}
+          px={4}
+          py={3}
+          mx={4}
+          borderWidth="2px"
+          borderColor="border"
+          borderRadius="lg"
+          bg="bg.panel"
+          boxShadow="lg"
+        >
+          <Text fontSize="sm" fontWeight="bold" mr="auto">
+            Zaznaczono ({selectedItemIds.length})
+          </Text>
+          <IconButton
+            aria-label="Dodaj fakturę"
+            variant="subtle"
+            colorPalette="primary"
+            size="sm"
+            onClick={() => navigate(`/faktury/nowa?roomId=${roomId}&itemIds=${selectedItemIds.join(',')}`)}
+          >
+            <FilePlus />
+          </IconButton>
+          <IconButton aria-label="Dodaj tag" variant="subtle" colorPalette="primary" size="sm" onClick={openAddTagModal}>
+            <TagIcon />
+          </IconButton>
+          <IconButton
+            aria-label="Usuń tagi"
+            variant="subtle"
+            colorPalette="primary"
+            size="sm"
+            onClick={openRemoveTagModal}
+            disabled={selectedTags.length === 0}
+          >
+            <CircleMinus />
+          </IconButton>
+          <IconButton aria-label="Odznacz wszystko" variant="subtle" colorPalette="gray" size="sm" onClick={clearSelection}>
+            <Xmark />
+          </IconButton>
+        </HStack>
+      )}
+
+      <Dialog.Root open={addTagModalOpen} onOpenChange={(details) => !details.open && setAddTagModalOpen(false)}>
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content mx={4}>
+              <Dialog.Header>
+                <Dialog.Title>Dodaj tag do zaznaczonych ({selectedItemIds.length})</Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                <TagsInput.Root
+                  value={addTagValue}
+                  onValueChange={(details) => setAddTagValue(details.value)}
+                  inputValue={addTagInputValue}
+                  onInputValueChange={(details) => setAddTagInputValue(details.inputValue)}
+                  colorPalette="primary"
+                >
+                  <TagsInput.Control borderWidth="2px">
+                    {addTagValue.map((tag, index) => (
+                      <TagsInput.Item key={tag} index={index} value={tag}>
+                        <TagsInput.ItemPreview>
+                          <TagsInput.ItemText>{tag}</TagsInput.ItemText>
+                          <TagsInput.ItemDeleteTrigger />
+                        </TagsInput.ItemPreview>
+                        <TagsInput.ItemInput />
+                      </TagsInput.Item>
+                    ))}
+                    <TagsInput.Input
+                      placeholder="Dodaj tag i wciśnij Enter"
+                      _placeholder={{ color: 'rgba(93, 49, 64, 0.5)' }}
+                    />
+                  </TagsInput.Control>
+                </TagsInput.Root>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Button variant="ghost" onClick={() => setAddTagModalOpen(false)}>
+                  Anuluj
+                </Button>
+                <Button colorPalette="primary" onClick={confirmAddTags} disabled={addTagValue.length === 0}>
+                  Dodaj
+                </Button>
+              </Dialog.Footer>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="Zamknij" variant="ghost" size="sm" position="absolute" top={2} right={2}>
+                  <Xmark />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={removeTagModalOpen} onOpenChange={(details) => !details.open && setRemoveTagModalOpen(false)}>
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content mx={4}>
+              <Dialog.Header>
+                <Dialog.Title>Usuń tagi z zaznaczonych ({selectedItemIds.length})</Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                {selectedTags.length === 0 ? (
+                  <Text fontSize="sm" color="fg.muted">
+                    Zaznaczone pozycje nie mają tagów.
+                  </Text>
+                ) : (
+                  <Wrap gap={2}>
+                    {selectedTags.map((tag) => (
+                      <Tag.Root
+                        key={tag}
+                        size="md"
+                        colorPalette="primary"
+                        variant={tagsToRemove.includes(tag) ? 'solid' : 'subtle'}
+                        cursor="pointer"
+                        onClick={() => toggleTagToRemove(tag)}
+                      >
+                        <Tag.Label>{tag}</Tag.Label>
+                      </Tag.Root>
+                    ))}
+                  </Wrap>
+                )}
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Button variant="ghost" onClick={() => setRemoveTagModalOpen(false)}>
+                  Anuluj
+                </Button>
+                <Button colorPalette="primary" onClick={confirmRemoveTags} disabled={tagsToRemove.length === 0}>
+                  Usuń
+                </Button>
+              </Dialog.Footer>
               <Dialog.CloseTrigger asChild>
                 <IconButton aria-label="Zamknij" variant="ghost" size="sm" position="absolute" top={2} right={2}>
                   <Xmark />

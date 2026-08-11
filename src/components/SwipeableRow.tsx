@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { Box, HStack, IconButton } from '@chakra-ui/react'
+import { Check } from '@gravity-ui/icons'
 
 export interface SwipeAction {
   label: string
@@ -14,22 +15,33 @@ interface SwipeableRowProps {
   children: ReactNode
   borderBottomWidth?: string
   borderColor?: string
+  onSwipeRight?: () => void
+  selected?: boolean
 }
 
 const ACTION_WIDTH = 44
 const ACTION_GAP = 8
 const DIRECTION_THRESHOLD = 6
+const SELECT_WIDTH = 72
 
-function SwipeableRow({ actions, children, borderBottomWidth, borderColor }: SwipeableRowProps) {
+function SwipeableRow({
+  actions,
+  children,
+  borderBottomWidth,
+  borderColor,
+  onSwipeRight,
+  selected,
+}: SwipeableRowProps) {
   const [offset, setOffset] = useState(0)
   const [dragging, setDragging] = useState(false)
   const startRef = useRef<{ x: number; y: number; offset: number } | null>(null)
   const directionRef = useRef<'horizontal' | 'vertical' | null>(null)
 
-  const maxOffset = actions.length > 0 ? actions.length * ACTION_WIDTH + (actions.length - 1) * ACTION_GAP + (ACTION_GAP * 2) : 0
+  const maxLeftOffset = actions.length > 0 ? actions.length * ACTION_WIDTH + (actions.length - 1) * ACTION_GAP + (ACTION_GAP * 2) : 0
+  const maxRightOffset = onSwipeRight ? SELECT_WIDTH : 0
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (actions.length === 0) return
+    if (actions.length === 0 && !onSwipeRight) return
     startRef.current = { x: event.clientX, y: event.clientY, offset }
     directionRef.current = null
   }
@@ -52,12 +64,17 @@ function SwipeableRow({ actions, children, borderBottomWidth, borderColor }: Swi
     if (directionRef.current !== 'horizontal') return
 
     event.preventDefault()
-    setOffset(Math.min(maxOffset, Math.max(0, start.offset - dx)))
+    setOffset(Math.min(maxLeftOffset, Math.max(-maxRightOffset, start.offset - dx)))
   }
 
   const endSwipe = () => {
     if (directionRef.current === 'horizontal') {
-      setOffset((current) => (current > maxOffset / 2 ? maxOffset : 0))
+      if (offset < -maxRightOffset / 2) {
+        onSwipeRight?.()
+        setOffset(0)
+      } else {
+        setOffset(offset > maxLeftOffset / 2 ? maxLeftOffset : 0)
+      }
     }
     startRef.current = null
     directionRef.current = null
@@ -86,8 +103,26 @@ function SwipeableRow({ actions, children, borderBottomWidth, borderColor }: Swi
           ))}
         </HStack>
       )}
+      {maxRightOffset > 0 && (
+        <Box
+          position="absolute"
+          top={0}
+          bottom={0}
+          left={0}
+          w={`${SELECT_WIDTH}px`}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          color="primary.solid"
+          opacity={Math.min(1, -offset / maxRightOffset)}
+        >
+          <Check width={24} height={24} />
+        </Box>
+      )}
       <Box
-        bg="bg"
+        bg={selected ? 'primary.subtle' : 'bg'}
+        borderLeftWidth={selected ? '4px' : undefined}
+        borderLeftColor={selected ? 'primary.solid' : undefined}
         position="relative"
         touchAction="pan-y"
         style={{
