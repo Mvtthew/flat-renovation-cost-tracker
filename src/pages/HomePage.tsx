@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Box, Grid, HStack, Spinner, Text, VStack } from '@chakra-ui/react'
+import { Avatar, Box, Grid, HStack, IconButton, Spinner, Text, VStack } from '@chakra-ui/react'
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpArrowDown,
   Box as BoxIcon,
   ChevronRight,
   Circles4Square,
@@ -10,6 +13,7 @@ import {
 import { ref, onValue } from 'firebase/database'
 import { Link } from 'react-router-dom'
 import { database } from '../lib/firebase'
+import { useAuth } from '../hooks/useAuth'
 import PageTitle from '../components/PageTitle'
 import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
 import type { PlanItem } from './PlanItemFormPage'
@@ -19,6 +23,21 @@ const OVERALL_BUDGET_PATH = 'settings/overallBudget'
 const ROOMS_PATH = 'settings/rooms'
 const PLAN_ITEMS_PATH = 'planItems'
 const INVOICES_PATH = 'invoices'
+const ROOMS_SORT_STORAGE_KEY = 'homeRoomsSortOrder'
+
+type RoomsSortOrder = 'none' | 'asc' | 'desc'
+
+const nextSortOrder: Record<RoomsSortOrder, RoomsSortOrder> = {
+  none: 'desc',
+  desc: 'asc',
+  asc: 'none',
+}
+
+const sortOrderIcon: Record<RoomsSortOrder, typeof ArrowUpArrowDown> = {
+  none: ArrowUpArrowDown,
+  desc: ArrowDown,
+  asc: ArrowUp,
+}
 
 interface RoomSummary {
   id: string
@@ -26,6 +45,8 @@ interface RoomSummary {
   planned: number
   spent: number
   budget?: number
+  planItemsCount: number
+  invoicesCount: number
 }
 
 const currencyFormatter = new Intl.NumberFormat('pl-PL', {
@@ -75,25 +96,47 @@ function StatBox({
   )
 }
 
-function CategoryBar({ id, name, planned, spent, budget }: RoomSummary) {
+function CategoryBar({
+  id,
+  name,
+  planned,
+  spent,
+  budget,
+  plannedShare,
+  planItemsCount,
+  invoicesCount,
+}: RoomSummary & { plannedShare: number }) {
+  const barWidth = `${Math.max(plannedShare * 200, 4)}%`
+
   return (
     <HStack asChild className="cursor-pointer" gap={2}>
       <Link to={`/pokoje/${id}`}>
         <Box flex="1">
-          <HStack justify="space-between" mb={1}>
+          <HStack justify="space-between">
             <Text fontSize="md">{name}</Text>
             <Text fontSize="xs" color="fg.muted">
               {currencyFormatter.format(spent)} / {currencyFormatter.format(planned)}
               {Boolean(budget) && ` / ${currencyFormatter.format(budget ?? 0)}`}
             </Text>
           </HStack>
-          <SpentPlannedBudgetBar
-            spent={spent}
-            planned={planned}
-            budget={budget ?? 0}
-            formatValue={currencyFormatter.format}
-            compact
-          />
+          <HStack justify="space-between" gap={2}>
+            <HStack gap={1} color="fg.muted" flexShrink={0}>
+              <BoxIcon width={12} height={12} />
+              <Text fontSize="xs">{planItemsCount}</Text>
+              <Text fontSize="xs">·</Text>
+              <FileDollar width={12} height={12} />
+              <Text fontSize="xs">{invoicesCount}</Text>
+            </HStack>
+            <Box width={barWidth}>
+              <SpentPlannedBudgetBar
+                spent={spent}
+                planned={planned}
+                budget={budget ?? 0}
+                formatValue={currencyFormatter.format}
+                compact
+              />
+            </Box>
+          </HStack>
         </Box>
         <Box color="fg.muted" display="flex" flexShrink="0" pl={2}>
           <ChevronRight width={16} height={16} />
@@ -104,11 +147,22 @@ function CategoryBar({ id, name, planned, spent, budget }: RoomSummary) {
 }
 
 function HomePage() {
+  const { user } = useAuth()
   const [budget, setBudget] = useState(0)
   const [roomList, setRoomList] = useState<{ id: string; name: string; budget?: number; order?: number }[]>([])
   const [planItems, setPlanItems] = useState<PlanItem[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+  const [roomsSortOrder, setRoomsSortOrder] = useState<RoomsSortOrder>(() => {
+    const stored = localStorage.getItem(ROOMS_SORT_STORAGE_KEY)
+    return stored === 'asc' || stored === 'desc' ? stored : 'none'
+  })
+
+  const toggleRoomsSortOrder = () => {
+    const next = nextSortOrder[roomsSortOrder]
+    setRoomsSortOrder(next)
+    localStorage.setItem(ROOMS_SORT_STORAGE_KEY, next)
+  }
 
   useEffect(() => {
     let budgetLoaded = false
@@ -165,11 +219,22 @@ function HomePage() {
   const invoiceCost = (invoice: Invoice) =>
     (invoice.realCost ?? 0) + (invoice.pickupType === 'delivery' ? (invoice.deliveryCost ?? 0) : 0)
 
-  const rooms: RoomSummary[] = roomList.map((room) => ({
-    ...room,
-    planned: planItems.filter((item) => item.roomId === room.id).reduce((sum, item) => sum + itemCost(item), 0),
-    spent: invoices.filter((invoice) => invoice.roomId === room.id).reduce((sum, invoice) => sum + invoiceCost(invoice), 0),
-  }))
+  const rooms: RoomSummary[] = roomList.map((room) => {
+    const roomPlanItems = planItems.filter((item) => item.roomId === room.id)
+    const roomInvoices = invoices.filter((invoice) => invoice.roomId === room.id)
+    return {
+      ...room,
+      planned: roomPlanItems.reduce((sum, item) => sum + itemCost(item), 0),
+      spent: roomInvoices.reduce((sum, invoice) => sum + invoiceCost(invoice), 0),
+      planItemsCount: roomPlanItems.length,
+      invoicesCount: roomInvoices.length,
+    }
+  })
+
+  const sortedRooms =
+    roomsSortOrder === 'none'
+      ? rooms
+      : [...rooms].sort((a, b) => (roomsSortOrder === 'asc' ? a.planned - b.planned : b.planned - a.planned))
 
   const planned = planItems.reduce((sum, item) => sum + itemCost(item), 0)
   const spent = invoices.reduce((sum, invoice) => sum + invoiceCost(invoice), 0)
@@ -184,7 +249,13 @@ function HomePage() {
 
   return (
     <Box p={4} pb={8}>
-      <PageTitle icon={House}>Dom</PageTitle>
+      <HStack justify="space-between" align="flex-start">
+        <PageTitle icon={House}>Dom</PageTitle>
+        <Avatar.Root borderWidth="2px" borderColor="primary.solid">
+          <Avatar.Image src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'User'} />
+          <Avatar.Fallback name={user?.displayName ?? user?.email ?? undefined} />
+        </Avatar.Root>
+      </HStack>
       <Text fontSize="2xl" fontWeight="bold" mb={2}>
         Podsumowanie
       </Text>
@@ -225,17 +296,32 @@ function HomePage() {
         <StatBox value={String(rooms.length)} label="pokoje" icon={Circles4Square} py={2} borderWidth="2px" />
       </Grid>
 
-      <HStack fontWeight="bold" mt={8} mb={3} gap={2}>
-        <Circles4Square width={18} height={18} />
-        <Text>Pomieszczenia</Text>
+      <HStack fontWeight="bold" mt={8} mb={3} justify="space-between">
+        <HStack gap={2}>
+          <Circles4Square width={18} height={18} />
+          <Text>Pomieszczenia</Text>
+        </HStack>
+        <IconButton
+          aria-label="Sortuj pomieszczenia wg zaplanowanej kwoty"
+          variant="ghost"
+          size="sm"
+          onClick={toggleRoomsSortOrder}
+        >
+          {(() => {
+            const SortIcon = sortOrderIcon[roomsSortOrder]
+            return <SortIcon width={18} height={18} />
+          })()}
+        </IconButton>
       </HStack>
       <VStack gap={4} align="stretch">
-        {rooms.length === 0 ? (
+        {sortedRooms.length === 0 ? (
           <Text fontSize="sm" color="fg.muted">
             Brak pomieszczeń — dodaj je w Ustawieniach.
           </Text>
         ) : (
-          rooms.map((room) => <CategoryBar key={room.id} {...room} />)
+          sortedRooms.map((room) => (
+            <CategoryBar key={room.id} {...room} plannedShare={planned > 0 ? room.planned / planned : 0} />
+          ))
         )}
       </VStack>
     </Box>

@@ -45,7 +45,7 @@ function SpentPlannedBudgetBar({
   }
 
   return (
-    <BarSegment.Root chart={chart} barSize={compact ? '4' : '8'} gap="3">
+    <BarSegment.Root chart={chart} barSize={compact ? '3' : '8'} gap="3">
       <BarSegment.Content>
         <Box css={{ '& > div > div': { borderRadius: '5px' } }}>
           <BarSegment.Bar tooltip={!compact} />

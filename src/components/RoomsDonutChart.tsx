@@ -22,6 +22,23 @@ const SLOT_COLORS = [
   '#5D3140', // primary.500
   '#CF4173', // "zaplanowano" accent
   '#F39399', // lightest brand accent
+  '#8C3557', // deep magenta, between primary.500 and the accent
+  '#E0668A', // pink, between the accent and its lightest tint
+  '#A34F6A', // primary.400
+  '#B23A63', // muted magenta
+  '#D9A7B7', // primary.200
+  '#722C48', // dark magenta-plum
+  '#C57B93', // primary.300
+  '#9E4460', // mid magenta-rose
+  '#F0839A', // coral-pink
+  '#EDB6C2', // light pink
+  '#FBC4CE', // pale pink
+  '#4A2733', // primary.600, very dark plum
+  '#DB5C82', // pink-magenta
+  '#8F5468', // muted mauve
+  '#C2456F', // rich rose
+  '#E89AAE', // dusty pink
+  '#6B2E44', // deep wine
 ]
 const OTHER_COLOR = '#ecd3db' // primary.100, reserved for the folded "Inne" slice
 
