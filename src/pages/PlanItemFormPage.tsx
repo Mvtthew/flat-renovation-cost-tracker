@@ -5,17 +5,20 @@ import {
   HStack,
   Input,
   InputGroup,
-  NativeSelect,
   NumberInput,
+  Portal,
   SegmentGroup,
+  Select,
   Text,
   Textarea,
   VStack,
+  createListCollection,
 } from '@chakra-ui/react'
 import { ref, push, set, remove, get, onValue } from 'firebase/database'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Box as BoxIcon, CirclePlus, Xmark } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import AppDatePicker from '../components/AppDatePicker'
 import type { Room } from './RoomFormPage'
 import type { Shop, PickupType } from './ShopFormPage'
 
@@ -114,6 +117,26 @@ function PlanItemFormPage() {
 
   const canSave = useMemo(() => Boolean(roomId && name.trim()), [roomId, name])
 
+  const roomsCollection = useMemo(
+    () =>
+      createListCollection({
+        items: rooms,
+        itemToValue: (room) => room.id,
+        itemToString: (room) => room.name,
+      }),
+    [rooms],
+  )
+
+  const shopsCollection = useMemo(
+    () =>
+      createListCollection({
+        items: shops,
+        itemToValue: (shop) => shop.id,
+        itemToString: (shop) => shop.name,
+      }),
+    [shops],
+  )
+
   const saveItem = async () => {
     if (!canSave) return
     const data: Omit<PlanItem, 'id'> = {
@@ -175,17 +198,33 @@ function PlanItemFormPage() {
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Pomieszczenie
           </Text>
-          <NativeSelect.Root disabled={loading}>
-            <NativeSelect.Field borderWidth="2px" value={roomId} onChange={(event) => setRoomId(event.target.value)}>
-              <option value="">Wybierz pomieszczenie</option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </NativeSelect.Field>
-            <NativeSelect.Indicator />
-          </NativeSelect.Root>
+          <Select.Root
+            collection={roomsCollection}
+            value={roomId ? [roomId] : []}
+            onValueChange={(details) => setRoomId(details.value[0] ?? '')}
+            disabled={loading}
+          >
+            <Select.Control>
+              <Select.Trigger borderWidth="2px">
+                <Select.ValueText placeholder="Wybierz pomieszczenie" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {roomsCollection.items.map((room) => (
+                    <Select.Item key={room.id} item={room}>
+                      <Select.ItemText>{room.name}</Select.ItemText>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
         </Box>
 
         <Box>
@@ -216,28 +255,40 @@ function PlanItemFormPage() {
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Sklep / dostawca
           </Text>
-          <NativeSelect.Root disabled={loading}>
-            <NativeSelect.Field
-              borderWidth="2px"
-              value={shopId}
-              onChange={(event) => {
-                const nextShopId = event.target.value
-                setShopId(nextShopId)
-                const nextShop = shops.find((shop) => shop.id === nextShopId)
-                if (nextShop?.pickupType) {
-                  setPickupType(nextShop.pickupType)
-                }
-              }}
-            >
-              <option value="">Wybierz sklep</option>
-              {shops.map((shop) => (
-                <option key={shop.id} value={shop.id}>
-                  {shop.name}
-                </option>
-              ))}
-            </NativeSelect.Field>
-            <NativeSelect.Indicator />
-          </NativeSelect.Root>
+          <Select.Root
+            collection={shopsCollection}
+            value={shopId ? [shopId] : []}
+            onValueChange={(details) => {
+              const nextShopId = details.value[0] ?? ''
+              setShopId(nextShopId)
+              const nextShop = shops.find((shop) => shop.id === nextShopId)
+              if (nextShop?.pickupType) {
+                setPickupType(nextShop.pickupType)
+              }
+            }}
+            disabled={loading}
+          >
+            <Select.Control>
+              <Select.Trigger borderWidth="2px">
+                <Select.ValueText placeholder="Wybierz sklep" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {shopsCollection.items.map((shop) => (
+                    <Select.Item key={shop.id} item={shop}>
+                      <Select.ItemText>{shop.name}</Select.ItemText>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
         </Box>
 
         <HStack gap={3} align="start">
@@ -278,12 +329,7 @@ function PlanItemFormPage() {
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Data docelowa
           </Text>
-          <Input
-            type="date"
-            value={targetDate}
-            onChange={(event) => setTargetDate(event.target.value)}
-            disabled={loading}
-          />
+          <AppDatePicker value={targetDate} onValueChange={setTargetDate} disabled={loading} />
         </Box>
 
         <Box>

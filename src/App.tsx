@@ -23,11 +23,11 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
+  { label: 'Opcje', path: '/ustawienia', icon: Gear },
+  { label: 'Przegląd', path: '/plan', icon: ChartLine },
   { label: 'Dom', path: '/', icon: House },
-  { label: 'Plan', path: '/plan', icon: ChartLine },
-  { label: 'Ustawienia', path: '/ustawienia', icon: Gear },
   { label: 'Faktura', path: '/faktury/nowa', icon: FilePlus },
-  { label: 'Dodaj', path: '/dodaj', icon: CirclePlus },
+  { label: 'Plan', path: '/dodaj', icon: CirclePlus },
 ]
 
 function AppShell() {
@@ -64,6 +64,7 @@ function AppShell() {
       <Box
         flex="1"
         overflowY="auto"
+        pt={2}
         style={{ paddingBottom: contentBottomPadding }}
       >
         <Routes>

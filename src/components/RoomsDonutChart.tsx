@@ -1,7 +1,13 @@
 import { Chart, useChart } from '@chakra-ui/charts'
 import { Cell, Label, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts'
 import type { PieLabelRenderProps } from 'recharts'
-import { Text } from '@chakra-ui/react'
+import { Box, Text } from '@chakra-ui/react'
+
+const LABEL_MAX_CHARS = 7
+
+function truncateLabel(name: string) {
+  return name.length > LABEL_MAX_CHARS ? `${name.slice(0, LABEL_MAX_CHARS)}.` : name
+}
 
 export interface DonutSegment {
   id: string
@@ -71,55 +77,57 @@ function RoomsDonutChart({ segments, centerLabel, total, formatValue, showLabels
   }
 
   return (
-    <Chart.Root boxSize="260px" mx="auto" chart={chart}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Tooltip
-            cursor={false}
-            animationDuration={100}
-            content={<Chart.Tooltip hideLabel formatter={(value) => formatValue(Number(value))} />}
-          />
-          <Pie
-            isAnimationActive={false}
-            data={chart.data}
-            dataKey={chart.key('value')}
-            nameKey={chart.key('name')}
-            innerRadius="65%"
-            outerRadius="90%"
-            paddingAngle={2}
-            cornerRadius={5}
-            strokeWidth={0}
-            label={
-              showLabels
-                ? ({ name, x, y, textAnchor }: PieLabelRenderProps) => (
-                    <text
-                      x={x}
-                      y={y}
-                      fill="var(--chakra-colors-fg-muted)"
-                      textAnchor={textAnchor ?? 'middle'}
-                      dominantBaseline="central"
-                    >
-                      {name}
-                    </text>
-                  )
-                : false
-            }
-            activeShape={(shapeProps: React.ComponentProps<typeof Sector>) => (
-              <Sector {...shapeProps} outerRadius={Number(shapeProps.outerRadius) + 6} />
-            )}
-          >
-            {chart.data.map((item) => (
-              <Cell key={item.name} fill={chart.color(item.color)} />
-            ))}
-            <Label
-              content={({ viewBox }) => (
-                <Chart.RadialText viewBox={viewBox} title={formatValue(total)} fontSize='26px' description={centerLabel} />
-              )}
+    <Box w="100%" maxW="260px" mx="auto">
+      <Chart.Root w="100%" aspectRatio={1} chart={chart}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Tooltip
+              cursor={false}
+              animationDuration={100}
+              content={<Chart.Tooltip hideLabel formatter={(value) => formatValue(Number(value))} />}
             />
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-    </Chart.Root>
+            <Pie
+              isAnimationActive={false}
+              data={chart.data}
+              dataKey={chart.key('value')}
+              nameKey={chart.key('name')}
+              innerRadius="65%"
+              outerRadius="90%"
+              paddingAngle={2}
+              cornerRadius={5}
+              strokeWidth={0}
+              label={
+                showLabels
+                  ? ({ name, x, y, textAnchor }: PieLabelRenderProps) => (
+                      <text
+                        x={x}
+                        y={y}
+                        fill="var(--chakra-colors-fg-muted)"
+                        textAnchor={textAnchor ?? 'middle'}
+                        dominantBaseline="central"
+                      >
+                        {truncateLabel(String(name))}
+                      </text>
+                    )
+                  : false
+              }
+              activeShape={(shapeProps: React.ComponentProps<typeof Sector>) => (
+                <Sector {...shapeProps} outerRadius={Number(shapeProps.outerRadius) + 6} />
+              )}
+            >
+              {chart.data.map((item) => (
+                <Cell key={item.name} fill={chart.color(item.color)} />
+              ))}
+              <Label
+                content={({ viewBox }) => (
+                  <Chart.RadialText viewBox={viewBox} title={formatValue(total)} fontSize='26px' description={centerLabel} />
+                )}
+              />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+      </Chart.Root>
+    </Box>
   )
 }
 

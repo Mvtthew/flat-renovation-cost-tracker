@@ -4,6 +4,8 @@ import { ref, push, set, remove, get } from 'firebase/database'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import RoomIconPicker from '../components/RoomIconPicker'
+import { DEFAULT_ROOM_ICON } from '../lib/roomIcons'
 
 const ROOMS_PATH = 'settings/rooms'
 
@@ -12,6 +14,7 @@ export interface Room {
   name: string
   budget?: number
   order?: number
+  icon?: string
 }
 
 function RoomFormPage() {
@@ -22,6 +25,7 @@ function RoomFormPage() {
   const [loading, setLoading] = useState(Boolean(roomId))
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
+  const [icon, setIcon] = useState(DEFAULT_ROOM_ICON)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -32,6 +36,7 @@ function RoomFormPage() {
       const value = snapshot.val() as Omit<Room, 'id'> | null
       setName(value?.name ?? '')
       setBudget(typeof value?.budget === 'number' ? String(value.budget) : '')
+      setIcon(value?.icon ?? DEFAULT_ROOM_ICON)
       setLoading(false)
     })
     return () => {
@@ -48,6 +53,7 @@ function RoomFormPage() {
         await set(ref(database, `${ROOMS_PATH}/${roomId}`), {
           name: trimmedName,
           budget: budget === '' ? 0 : Number(budget),
+          icon,
         })
       } else {
         const snapshot = await get(ref(database, ROOMS_PATH))
@@ -59,6 +65,7 @@ function RoomFormPage() {
           name: trimmedName,
           budget: budget === '' ? 0 : Number(budget),
           order: maxOrder + 1,
+          icon,
         })
       }
     } finally {
@@ -75,9 +82,6 @@ function RoomFormPage() {
 
   return (
     <Box p={4} pb={8}>
-      <Text color="fg.muted" textAlign="center" mb={2}>
-        Ustawienia pomieszczenia
-      </Text>
       <HStack gap={2} mb={6}>
         <Box as="button" onClick={goBack} className="cursor-pointer" display="flex">
           <ArrowLeft />
@@ -88,6 +92,10 @@ function RoomFormPage() {
       </HStack>
 
       <VStack gap={5} align="stretch" opacity={loading ? 0.5 : 1}>
+        <Box display="flex" justifyContent="center">
+          <RoomIconPicker value={icon} onChange={setIcon} />
+        </Box>
+
         <Box>
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Nazwa pomieszczenia

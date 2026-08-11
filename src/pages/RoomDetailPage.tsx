@@ -16,11 +16,13 @@ import {
   Xmark,
 } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import { getRoomIcon } from '../lib/roomIcons'
 import type { Room } from './RoomFormPage'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Shop } from './ShopFormPage'
 import type { Invoice } from './InvoiceFormPage'
 import SortableList from '../components/SortableList'
+import SwipeableRow from '../components/SwipeableRow'
 import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
 
 const ROOMS_PATH = 'settings/rooms'
@@ -152,16 +154,22 @@ function RoomDetailPage() {
   }
 
   const budget = room?.budget ?? 0
+  const RoomIcon = getRoomIcon(room?.icon)
 
   return (
     <Box p={4} pb={8}>
-      <HStack gap={2} mb={6}>
+      <HStack justify="space-between" mb={6}>
         <Box as="button" onClick={() => navigate('/')} className="cursor-pointer" display="flex">
           <ArrowLeft />
         </Box>
-        <Text fontSize="xl" fontWeight="bold">
-          {room?.name ?? 'Pomieszczenie'}
-        </Text>
+        <HStack gap={2}>
+          <Box display="flex" alignItems="center" color="primary.solid">
+            <RoomIcon width={22} height={22} />
+          </Box>
+          <Text fontSize="xl" fontWeight="bold">
+            {room?.name ?? 'Pomieszczenie'}
+          </Text>
+        </HStack>
       </HStack>
 
       <Box borderWidth="3px" borderColor="border" borderRadius="lg" p={4}>
@@ -203,7 +211,7 @@ function RoomDetailPage() {
       </Box>
 
       <HStack justify="space-between" mt={8} mb={3}>
-        <Text fontWeight="bold">Zaplanowane pozycje ({planItems.length})</Text>
+        <Text fontWeight="bold">Zaplanowane ({planItems.length})</Text>
         <Button asChild colorPalette="primary" size="sm">
           <Link to={`/dodaj?roomId=${roomId}`}>+ Pozycja planu</Link>
         </Button>
@@ -217,110 +225,117 @@ function RoomDetailPage() {
           items={planItems}
           onReorder={handleReorderPlanItems}
           renderItem={(item) => (
-            <HStack
-              justify="space-between"
-              py={3}
+            <SwipeableRow
               borderBottomWidth={item.id === planItems[planItems.length - 1].id ? undefined : '1px'}
               borderColor="border"
+              actions={[
+                ...(item.notes
+                  ? [
+                    {
+                      label: 'Pokaż notatki',
+                      icon: <FileText />,
+                      onClick: () => setNotesEntry({ title: item.name, notes: item.notes ?? '' }),
+                      colorPalette: 'gray',
+                    },
+                  ]
+                  : []),
+                {
+                  label: 'Edytuj pozycję',
+                  icon: <Pencil />,
+                  onClick: () => navigate(`/pozycje/${item.id}`),
+                },
+              ]}
             >
-              <HStack gap={3}>
-                <Box
-                  boxSize="6"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  color="primary.300"
-                >
-                  <BoxIcon />
-                </Box>
-                <Box>
-                  <Text>{item.name}</Text>
-                  <Text fontSize="sm" color="fg.muted">
-                    {currencyFormatter.format((item.price ?? 0) * (item.amount ?? 1))}
-                    {(item.amount ?? 1) > 1 ? ` · ${item.amount} szt.` : ''}
-                  </Text>
-                  {item.shopId && (
-                    <HStack gap={1} mt={0.5}>
-                      <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                        <ShoppingBasket />
-                      </Box>
-                      <Text fontSize="xs" color="fg.muted">
-                        {shops.find((shop) => shop.id === item.shopId)?.name}
-                      </Text>
-                    </HStack>
-                  )}
-                  {item.pickupType === 'delivery' && (Boolean(item.deliveryCost) || Boolean(item.deliveryDays)) && (
-                    <HStack gap={1} mt={0.5}>
-                      {Boolean(item.deliveryCost) && (
-                        <>
-                          <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                            <Trolley />
-                          </Box>
-                          <Text fontSize="xs" color="fg.muted">
-                            {currencyFormatter.format(item.deliveryCost ?? 0)}
-                          </Text>
-                        </>
-                      )}
-                      {Boolean(item.deliveryCost) && Boolean(item.deliveryDays) && (
+              <HStack
+                justify="space-between"
+                py={3}
+              >
+                <HStack gap={3}>
+                  <Box
+                    boxSize="6"
+                    minW="6"
+                    flexShrink={0}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    color="primary.300"
+                  >
+                    <BoxIcon />
+                  </Box>
+                  <Box>
+                    <Text>{item.name}</Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      {currencyFormatter.format((item.price ?? 0) * (item.amount ?? 1))}
+                      {(item.amount ?? 1) > 1 ? ` · ${item.amount} szt.` : ''}
+                    </Text>
+                    {item.shopId && (
+                      <HStack gap={1} mt={0.5}>
+                        <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                          <ShoppingBasket />
+                        </Box>
                         <Text fontSize="xs" color="fg.muted">
-                          ·
+                          {shops.find((shop) => shop.id === item.shopId)?.name}
                         </Text>
-                      )}
-                      {Boolean(item.deliveryDays) && (
-                        <>
-                          <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                            <Hourglass />
-                          </Box>
+                      </HStack>
+                    )}
+                    {item.pickupType === 'delivery' && (Boolean(item.deliveryCost) || Boolean(item.deliveryDays)) && (
+                      <HStack gap={1} mt={0.5}>
+                        {Boolean(item.deliveryCost) && (
+                          <>
+                            <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                              <Trolley />
+                            </Box>
+                            <Text fontSize="xs" color="fg.muted">
+                              {currencyFormatter.format(item.deliveryCost ?? 0)}
+                            </Text>
+                          </>
+                        )}
+                        {Boolean(item.deliveryCost) && Boolean(item.deliveryDays) && (
                           <Text fontSize="xs" color="fg.muted">
-                            {item.deliveryDays} dni
+                            ·
                           </Text>
-                        </>
-                      )}
-                    </HStack>
+                        )}
+                        {Boolean(item.deliveryDays) && (
+                          <>
+                            <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                              <Hourglass />
+                            </Box>
+                            <Text fontSize="xs" color="fg.muted">
+                              {item.deliveryDays} dni
+                            </Text>
+                          </>
+                        )}
+                      </HStack>
+                    )}
+                    {item.targetDate && (
+                      <HStack gap={1} mt={0.5}>
+                        <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                          <Calendar />
+                        </Box>
+                        <Text fontSize="xs" color="fg.muted">
+                          {dateFormatter.format(new Date(item.targetDate))} (
+                          {formatRelativeTarget(item.targetDate)})
+                        </Text>
+                      </HStack>
+                    )}
+                  </Box>
+                </HStack>
+                <HStack gap={1}>
+                  {item.link && (
+                    <IconButton
+                      asChild
+                      aria-label="Otwórz link"
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <a href={item.link} target="_blank" rel="noreferrer">
+                        <LinkIcon />
+                      </a>
+                    </IconButton>
                   )}
-                  {item.targetDate && (
-                    <HStack gap={1} mt={0.5}>
-                      <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                        <Calendar />
-                      </Box>
-                      <Text fontSize="xs" color="fg.muted">
-                        {dateFormatter.format(new Date(item.targetDate))} (
-                        {formatRelativeTarget(item.targetDate)})
-                      </Text>
-                    </HStack>
-                  )}
-                </Box>
+                </HStack>
               </HStack>
-              <HStack gap={1}>
-                {item.notes && (
-                  <IconButton
-                    aria-label="Pokaż notatki"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setNotesEntry({ title: item.name, notes: item.notes ?? '' })}
-                  >
-                    <FileText />
-                  </IconButton>
-                )}
-                {item.link && (
-                  <IconButton
-                    asChild
-                    aria-label="Otwórz link"
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <a href={item.link} target="_blank" rel="noreferrer">
-                      <LinkIcon />
-                    </a>
-                  </IconButton>
-                )}
-                <IconButton asChild aria-label="Edytuj pozycję" variant="ghost" size="sm">
-                  <Link to={`/pozycje/${item.id}`}>
-                    <Pencil />
-                  </Link>
-                </IconButton>
-              </HStack>
-            </HStack>
+            </SwipeableRow>
           )}
         />
       )}
@@ -358,6 +373,8 @@ function RoomDetailPage() {
                 <HStack gap={3}>
                   <Box
                     boxSize="6"
+                    minW="6"
+                    flexShrink={0}
                     display="flex"
                     alignItems="center"
                     justifyContent="center"

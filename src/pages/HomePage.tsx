@@ -17,6 +17,7 @@ import { useAuth } from '../hooks/useAuth'
 import PageTitle from '../components/PageTitle'
 import RoomsDonutChart from '../components/RoomsDonutChart'
 import SpentPlannedBudgetBar from '../components/SpentPlannedBudgetBar'
+import { getRoomIcon } from '../lib/roomIcons'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Invoice } from './InvoiceFormPage'
 
@@ -43,6 +44,7 @@ const sortOrderIcon: Record<RoomsSortOrder, typeof ArrowUpArrowDown> = {
 interface RoomSummary {
   id: string
   name: string
+  icon?: string
   planned: number
   spent: number
   budget?: number
@@ -100,6 +102,7 @@ function StatBox({
 function CategoryBar({
   id,
   name,
+  icon,
   planned,
   spent,
   budget,
@@ -108,10 +111,14 @@ function CategoryBar({
   invoicesCount,
 }: RoomSummary & { plannedShare: number }) {
   const barWidth = `${Math.max(plannedShare * 200, 4)}%`
+  const RoomIcon = getRoomIcon(icon)
 
   return (
-    <HStack asChild className="cursor-pointer" gap={2}>
+    <HStack asChild className="cursor-pointer" gap={2} align="center">
       <Link to={`/pokoje/${id}`}>
+        <Box color="primary.300" display="flex" alignItems="center" justifyContent="center" flexShrink={0} boxSize="8">
+          <RoomIcon width={22} height={22} />
+        </Box>
         <Box flex="1">
           <HStack justify="space-between">
             <Text fontSize="md">{name}</Text>
@@ -150,7 +157,9 @@ function CategoryBar({
 function HomePage() {
   const { user } = useAuth()
   const [budget, setBudget] = useState(0)
-  const [roomList, setRoomList] = useState<{ id: string; name: string; budget?: number; order?: number }[]>([])
+  const [roomList, setRoomList] = useState<
+    { id: string; name: string; icon?: string; budget?: number; order?: number }[]
+  >([])
   const [planItems, setPlanItems] = useState<PlanItem[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -182,9 +191,18 @@ function HomePage() {
     })
 
     const unsubscribeRooms = onValue(ref(database, ROOMS_PATH), (snapshot) => {
-      const value = snapshot.val() as Record<string, { name: string; budget?: number; order?: number }> | null
+      const value = snapshot.val() as Record<
+        string,
+        { name: string; icon?: string; budget?: number; order?: number }
+      > | null
       const list = value
-        ? Object.entries(value).map(([id, room]) => ({ id, name: room.name, budget: room.budget, order: room.order }))
+        ? Object.entries(value).map(([id, room]) => ({
+          id,
+          name: room.name,
+          icon: room.icon,
+          budget: room.budget,
+          order: room.order,
+        }))
         : []
       list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       setRoomList(list)
@@ -256,13 +274,18 @@ function HomePage() {
     <Box p={4} pb={8}>
       <HStack justify="space-between" align="flex-start">
         <PageTitle icon={House}>Dom</PageTitle>
-        <Avatar.Root borderWidth="2px" borderColor="primary.solid">
-          <Avatar.Image src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'User'} />
-          <Avatar.Fallback name={user?.displayName ?? user?.email ?? undefined} />
-        </Avatar.Root>
+        <HStack gap={2}>
+          <Text fontSize="sm" fontWeight="bold">
+            {user?.displayName?.split(' ')[0] ?? user?.email}
+          </Text>
+          <Avatar.Root borderWidth="2px" borderColor="primary.solid" boxSize="28px">
+            <Avatar.Image src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'User'} />
+            <Avatar.Fallback name={user?.displayName ?? user?.email ?? undefined} />
+          </Avatar.Root>
+        </HStack>
       </HStack>
 
-      <Grid templateColumns="1fr 1fr" gap={4} alignItems="center">
+      <Grid templateColumns="3fr 2fr" gap={4} alignItems="center">
         <Box>
           <RoomsDonutChart
             segments={roomSegments}
@@ -274,7 +297,6 @@ function HomePage() {
         </Box>
         <VStack gap={2} align="stretch">
           <StatBox variant="solid" color="#5D3140" value={currencyFormatter.format(spent)} label="wydano" />
-          <StatBox variant="solid" color="#CF4173" value={currencyFormatter.format(planned)} label="zaplanowano" />
           <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
           <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
         </VStack>

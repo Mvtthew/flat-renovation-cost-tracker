@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Box, Button, HStack, IconButton, Spinner, Text } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
 import { Link } from 'react-router-dom'
-import { Circle, Pencil } from '@gravity-ui/icons'
+import { Pencil } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import type { Room } from '../pages/RoomFormPage'
+import { getRoomIcon } from '../lib/roomIcons'
 import SortableList from './SortableList'
 
 const ROOMS_PATH = 'settings/rooms'
@@ -49,7 +50,9 @@ function RoomsSection() {
         <SortableList
           items={rooms}
           onReorder={handleReorder}
-          renderItem={(room, index) => (
+          renderItem={(room, index) => {
+            const RoomIcon = getRoomIcon(room.icon)
+            return (
             <HStack
               justify="space-between"
               py={3}
@@ -64,7 +67,7 @@ function RoomsSection() {
                   justifyContent="center"
                   color="primary.300"
                 >
-                  <Circle />
+                  <RoomIcon />
                 </Box>
                 <Text>{room.name}</Text>
               </HStack>
@@ -74,7 +77,8 @@ function RoomsSection() {
                 </Link>
               </IconButton>
             </HStack>
-          )}
+            )
+          }}
         />
       )}
       <Text mt={3} fontSize="sm" color="fg.muted">

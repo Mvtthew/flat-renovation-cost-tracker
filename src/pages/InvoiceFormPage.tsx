@@ -7,7 +7,6 @@ import {
   IconButton,
   Input,
   InputGroup,
-  NativeSelect,
   NumberInput,
   Portal,
   SegmentGroup,
@@ -21,6 +20,7 @@ import { ref, push, set, remove, get, onValue, update } from 'firebase/database'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, FileDollar, FilePlus, Xmark } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import AppDatePicker from '../components/AppDatePicker'
 import type { Room } from './RoomFormPage'
 import type { PlanItem } from './PlanItemFormPage'
 import type { PickupType } from './ShopFormPage'
@@ -121,6 +121,16 @@ function InvoiceFormPage() {
     [roomItems],
   )
 
+  const roomsCollection = useMemo(
+    () =>
+      createListCollection({
+        items: rooms,
+        itemToValue: (room) => room.id,
+        itemToString: (room) => room.name,
+      }),
+    [rooms],
+  )
+
   const linkedItems = useMemo(
     () => roomItems.filter((item) => linkedItemIds.includes(item.id)),
     [roomItems, linkedItemIds],
@@ -194,24 +204,36 @@ function InvoiceFormPage() {
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Pomieszczenie
           </Text>
-          <NativeSelect.Root disabled={loading}>
-            <NativeSelect.Field
-              borderWidth="2px"
-              value={roomId}
-              onChange={(event) => {
-                setRoomId(event.target.value)
-                setLinkedItemIds([])
-              }}
-            >
-              <option value="">Wybierz pomieszczenie</option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </NativeSelect.Field>
-            <NativeSelect.Indicator />
-          </NativeSelect.Root>
+          <Select.Root
+            collection={roomsCollection}
+            value={roomId ? [roomId] : []}
+            onValueChange={(details) => {
+              setRoomId(details.value[0] ?? '')
+              setLinkedItemIds([])
+            }}
+            disabled={loading}
+          >
+            <Select.Control>
+              <Select.Trigger borderWidth="2px">
+                <Select.ValueText placeholder="Wybierz pomieszczenie" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {roomsCollection.items.map((room) => (
+                    <Select.Item key={room.id} item={room}>
+                      <Select.ItemText>{room.name}</Select.ItemText>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
         </Box>
 
         <Box>
@@ -330,12 +352,7 @@ function InvoiceFormPage() {
           <Text fontSize="sm" color="fg.muted" mb={1}>
             Data
           </Text>
-          <Input
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            disabled={loading}
-          />
+          <AppDatePicker value={date} onValueChange={setDate} disabled={loading} />
           {linkedItemIds.length > 0 && (
             <Text fontSize="xs" color="fg.muted" mt={1}>
               powiązanie oznacza zaplanowaną pozycję jako kupioną
