@@ -6,7 +6,6 @@ import {
   ArrowUpArrowDown,
   Box as BoxIcon,
   ChevronRight,
-  Circles4Square,
   FileDollar,
   House,
 } from '@gravity-ui/icons'
