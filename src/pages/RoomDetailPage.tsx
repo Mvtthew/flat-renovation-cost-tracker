@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
   Button,
@@ -17,7 +17,7 @@ import {
   Wrap,
 } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Box as BoxIcon,
@@ -40,6 +40,7 @@ import {
   Xmark,
 } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import { withBackground } from '../lib/modalRoute'
 import { getRoomIcon } from '../lib/roomIcons'
 import { groupItemsByTag, NO_TAG_GROUP } from '../lib/groupByTag'
 import type { Room } from './RoomFormPage'
@@ -85,6 +86,7 @@ function formatRelativeTarget(targetDate: string): string {
 function RoomDetailPage() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [room, setRoom] = useState<Omit<Room, 'id'> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -103,6 +105,32 @@ function RoomDetailPage() {
   const [tagsToRemove, setTagsToRemove] = useState<string[]>([])
   const [groupByTagEnabled, setGroupByTagEnabled] = useState(true)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const headerRef = useRef<HTMLDivElement>(null)
+  const [headerHeight, setHeaderHeight] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerRect, setContainerRect] = useState<{ left: number; width: number } | null>(null)
+
+  useEffect(() => {
+    const measure = () => {
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      setContainerRect({ left: rect.left, width: rect.width })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  useEffect(() => {
+    const headerEl = headerRef.current
+    if (!headerEl) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setHeaderHeight(entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height)
+    })
+    observer.observe(headerEl)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!roomId) return
@@ -325,7 +353,7 @@ function RoomDetailPage() {
         {
           label: 'Edytuj pozycję',
           icon: <Pencil />,
-          onClick: () => navigate(`/pozycje/${item.id}`),
+          onClick: () => navigate(`/pozycje/${item.id}`, withBackground(location)),
         },
       ]}
     >
@@ -457,9 +485,21 @@ function RoomDetailPage() {
   const budget = room?.budget ?? 0
   const RoomIcon = getRoomIcon(room?.icon)
 
+  const isFixed = Boolean(containerRect)
+
   return (
-    <Box p={4} pb={8}>
-      <HStack justify="space-between" mb={6}>
+    <Box p={4} pb={8} ref={containerRef}>
+      <HStack
+        ref={headerRef}
+        justify="space-between"
+        pb={6}
+        position={{ md: isFixed ? 'fixed' : 'static' }}
+        top={{ md: 0 }}
+        left={{ md: containerRect ? `${containerRect.left}px` : undefined }}
+        width={{ md: containerRect ? `${containerRect.width}px` : undefined }}
+        zIndex={2}
+        bg="bg"
+      >
         <Box as="button" onClick={() => navigate('/')} className="cursor-pointer" display="flex">
           <ArrowLeft />
         </Box>
@@ -473,237 +513,256 @@ function RoomDetailPage() {
         </HStack>
       </HStack>
 
-      <Box>
-        <Grid templateColumns="3fr 2fr" gap={4} alignItems="start">
-          <Box>
-            <RoomsDonutChart
-              segments={tagSegments}
-              total={planned}
-              centerLabel="zaplanowano"
+      <Grid
+        templateColumns={{ base: '1fr', md: '360px 1fr' }}
+        gap={{ base: 0, md: 8 }}
+        mt={{ md: isFixed ? `${headerHeight}px` : 0 }}
+      >
+        <Box
+          position={{ md: isFixed ? 'fixed' : 'static' }}
+          top={{ md: `${headerHeight}px` }}
+          left={{ md: containerRect ? `${containerRect.left}px` : undefined }}
+          width={{ md: '360px' }}
+        >
+          <Grid templateColumns="3fr 2fr" gap={4} alignItems="start">
+            <Box>
+              <RoomsDonutChart
+                segments={tagSegments}
+                total={planned}
+                centerLabel="zaplanowano"
+                formatValue={currencyFormatter.format}
+                showLabels={false}
+              />
+            </Box>
+            <VStack gap={2} align="stretch">
+              <StatBox variant="solid" value={currencyFormatter.format(spent)} label="wydano" py={2} />
+              {hasBudget && <StatBox value={currencyFormatter.format(budget)} label="budżet" py={2} borderWidth="2px" />}
+              <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
+              <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
+            </VStack>
+          </Grid>
+          <Box mt={4}>
+            <SpentPlannedBudgetBar
+              spent={spent}
+              planned={planned}
+              budget={budget}
               formatValue={currencyFormatter.format}
-              showLabels={false}
+              showLegendValue={false}
             />
           </Box>
-          <VStack gap={2} align="stretch">
-            <StatBox variant="solid" value={currencyFormatter.format(spent)} label="wydano" py={2} />
-            {hasBudget && <StatBox value={currencyFormatter.format(budget)} label="budżet" py={2} borderWidth="2px" />}
-            <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
-            <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
-          </VStack>
-        </Grid>
-        <Box mt={4}>
-          <SpentPlannedBudgetBar
-            spent={spent}
-            planned={planned}
-            budget={budget}
-            formatValue={currencyFormatter.format}
-            showLegendValue={false}
-          />
         </Box>
-      </Box>
 
-      <HStack justify="space-between" mt={8} mb={3}>
-        <Text fontWeight="bold">Zaplanowane ({filteredPlanItems.length})</Text>
-        <HStack gap={2}>
-          <IconButton
-            aria-label={groupByTagEnabled ? 'Pokaż jako listę' : 'Grupuj po tagach'}
-            variant={groupByTagEnabled ? 'solid' : 'ghost'}
-            colorPalette="primary"
-            size="sm"
-            onClick={() => setGroupByTagEnabled((current) => !current)}
-          >
-            {groupByTagEnabled ? <Folders /> : <ListUl />}
-          </IconButton>
-          <Button asChild colorPalette="primary" size="sm">
-            <Link to={`/dodaj?roomId=${roomId}`}>+ Pozycja planu</Link>
-          </Button>
-        </HStack>
-      </HStack>
-      {planItems.length > 0 && (
-        <InputGroup startElement={<Magnifier width={16} height={16} />} mb={activeTags.length > 0 ? 2 : 3}>
-          <Input
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Szukaj pozycji…"
-            borderWidth="2px"
-          />
-        </InputGroup>
-      )}
-      {activeTags.length > 0 && (
-        <Wrap gap={2} mb={3}>
-          {activeTags.map((tag) => (
-            <Tag.Root key={tag} colorPalette="primary" variant="solid" cursor="pointer" onClick={() => toggleTag(tag)}>
-              <Tag.Label>{tag}</Tag.Label>
-              <Tag.EndElement>
-                <Tag.CloseTrigger />
-              </Tag.EndElement>
-            </Tag.Root>
-          ))}
-        </Wrap>
-      )}
-      {planItems.length === 0 ? (
-        <Text fontSize="sm" color="fg.muted" py={2}>
-          Brak zaplanowanych pozycji.
-        </Text>
-      ) : filteredPlanItems.length === 0 ? (
-        <Text fontSize="sm" color="fg.muted" py={2}>
-          {normalizedSearchQuery ? 'Brak pozycji pasujących do wyszukiwania.' : 'Brak pozycji z wybranymi tagami.'}
-        </Text>
-      ) : groupByTagEnabled ? (
-        <VStack align="stretch" gap={1}>
-          {groupItemsByTag(filteredPlanItems).map(({ tag, items }) => {
-            const isExpanded = expandedGroups.has(tag)
-            const groupTotal = items.reduce((sum, item) => sum + itemCost(item), 0)
-            return (
-              <Collapsible.Root
-                key={tag}
-                open={isExpanded}
-                onOpenChange={() => toggleGroupExpanded(tag)}
+        <Box>
+          <HStack justify="space-between" mt={{ base: 8, md: 0 }} mb={3}>
+            <Text fontWeight="bold">Zaplanowane ({filteredPlanItems.length})</Text>
+            <HStack gap={2}>
+              <IconButton
+                aria-label={groupByTagEnabled ? 'Pokaż jako listę' : 'Grupuj po tagach'}
+                variant={groupByTagEnabled ? 'solid' : 'ghost'}
+                colorPalette="primary"
+                size="sm"
+                onClick={() => setGroupByTagEnabled((current) => !current)}
               >
-                <Collapsible.Trigger asChild>
+                {groupByTagEnabled ? <Folders /> : <ListUl />}
+              </IconButton>
+              <Button asChild colorPalette="primary" size="sm">
+                <Link to={`/dodaj?roomId=${roomId}`} {...withBackground(location)}>
+                  + Pozycja planu
+                </Link>
+              </Button>
+            </HStack>
+          </HStack>
+          {planItems.length > 0 && (
+            <InputGroup startElement={<Magnifier width={16} height={16} />} mb={activeTags.length > 0 ? 2 : 3}>
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Szukaj pozycji…"
+                borderWidth="2px"
+              />
+            </InputGroup>
+          )}
+          {activeTags.length > 0 && (
+            <Wrap gap={2} mb={3}>
+              {activeTags.map((tag) => (
+                <Tag.Root key={tag} colorPalette="primary" variant="solid" cursor="pointer" onClick={() => toggleTag(tag)}>
+                  <Tag.Label>{tag}</Tag.Label>
+                  <Tag.EndElement>
+                    <Tag.CloseTrigger />
+                  </Tag.EndElement>
+                </Tag.Root>
+              ))}
+            </Wrap>
+          )}
+          <Box>
+            {planItems.length === 0 ? (
+              <Text fontSize="sm" color="fg.muted" py={2}>
+                Brak zaplanowanych pozycji.
+              </Text>
+            ) : filteredPlanItems.length === 0 ? (
+              <Text fontSize="sm" color="fg.muted" py={2}>
+                {normalizedSearchQuery ? 'Brak pozycji pasujących do wyszukiwania.' : 'Brak pozycji z wybranymi tagami.'}
+              </Text>
+            ) : groupByTagEnabled ? (
+              <VStack align="stretch" gap={1}>
+                {groupItemsByTag(filteredPlanItems).map(({ tag, items }) => {
+                  const isExpanded = expandedGroups.has(tag)
+                  const groupTotal = items.reduce((sum, item) => sum + itemCost(item), 0)
+                  return (
+                    <Collapsible.Root
+                      key={tag}
+                      open={isExpanded}
+                      onOpenChange={() => toggleGroupExpanded(tag)}
+                    >
+                      <Collapsible.Trigger asChild>
+                        <HStack
+                          as="button"
+                          w="full"
+                          justify="space-between"
+                          py={2}
+                          cursor="pointer"
+                        >
+                          <HStack gap={2}>
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                              transform={isExpanded ? undefined : 'rotate(-90deg)'}
+                              transition="transform 0.15s"
+                            >
+                              <ChevronDown width={16} height={16} />
+                            </Box>
+                            <Text fontWeight="bold">{tag === NO_TAG_GROUP ? 'Bez tagu' : tag}</Text>
+                            <Text fontSize="sm" color="fg.muted">
+                              ({items.length})
+                            </Text>
+                          </HStack>
+                          <Text fontSize="sm" color="fg.muted">
+                            {currencyFormatter.format(groupTotal)}
+                          </Text>
+                        </HStack>
+                      </Collapsible.Trigger>
+                      <Collapsible.Content>
+                        <Box display="block">
+                          {items.map((item, index) => renderPlanItemRow(item, index === items.length - 1))}
+                        </Box>
+                      </Collapsible.Content>
+                    </Collapsible.Root>
+                  )
+                })}
+              </VStack>
+            ) : activeTags.length > 0 || normalizedSearchQuery ? (
+              <Box display="block">
+                {filteredPlanItems.map((item, index) =>
+                  renderPlanItemRow(item, index === filteredPlanItems.length - 1),
+                )}
+              </Box>
+            ) : (
+              <SortableList
+                items={planItems}
+                onReorder={handleReorderPlanItems}
+                renderItem={(item) => renderPlanItemRow(item, item.id === planItems[planItems.length - 1].id)}
+              />
+            )}
+          </Box>
+
+          <HStack justify="space-between" mt={8} mb={3}>
+            <Text fontWeight="bold">Faktury ({invoices.length})</Text>
+            <Button asChild colorPalette="primary" size="sm">
+              <Link to={`/faktury/nowa?roomId=${roomId}`} {...withBackground(location)}>
+                + Dodaj fakturę
+              </Link>
+            </Button>
+          </HStack>
+          {invoices.length === 0 ? (
+            <Text fontSize="sm" color="fg.muted" py={2}>
+              Brak faktur.
+            </Text>
+          ) : (
+            <SortableList
+              items={invoices}
+              onReorder={handleReorderInvoices}
+              renderItem={(invoice) => {
+                const invoiceShopNames = [
+                  ...new Set(
+                    planItems
+                      .filter((item) => invoice.linkedItemIds?.includes(item.id) && item.shopId)
+                      .map((item) => shops.find((shop) => shop.id === item.shopId)?.name)
+                      .filter((name): name is string => Boolean(name)),
+                  ),
+                ]
+                return (
                   <HStack
-                    as="button"
-                    w="full"
                     justify="space-between"
-                    py={2}
-                    cursor="pointer"
+                    py={3}
+                    borderBottomWidth={invoice.id === invoices[invoices.length - 1].id ? undefined : '1px'}
+                    borderColor="border"
                   >
-                    <HStack gap={2}>
+                    <HStack gap={3}>
                       <Box
+                        boxSize="6"
+                        minW="6"
+                        flexShrink={0}
                         display="flex"
                         alignItems="center"
-                        transform={isExpanded ? undefined : 'rotate(-90deg)'}
-                        transition="transform 0.15s"
+                        justifyContent="center"
+                        color="primary.300"
                       >
-                        <ChevronDown width={16} height={16} />
+                        <Receipt />
                       </Box>
-                      <Text fontWeight="bold">{tag === NO_TAG_GROUP ? 'Bez tagu' : tag}</Text>
-                      <Text fontSize="sm" color="fg.muted">
-                        ({items.length})
-                      </Text>
+                      <Box>
+                        <Text>{invoice.title || 'Faktura'}</Text>
+                        <Text fontSize="sm" color="fg.muted">
+                          {currencyFormatter.format(
+                            (invoice.realCost ?? 0) +
+                            (invoice.pickupType === 'delivery' ? (invoice.deliveryCost ?? 0) : 0),
+                          )}
+                        </Text>
+                        <HStack gap={1} mt={0.5}>
+                          <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                            <Calendar />
+                          </Box>
+                          <Text fontSize="xs" color="fg.muted">
+                            {dateFormatter.format(new Date(invoice.date))}
+                          </Text>
+                        </HStack>
+                        {invoiceShopNames.length > 0 && (
+                          <HStack gap={1} mt={0.5}>
+                            <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
+                              <ShoppingBasket />
+                            </Box>
+                            <Text fontSize="xs" color="fg.muted">
+                              {invoiceShopNames.join(', ')}
+                            </Text>
+                          </HStack>
+                        )}
+                      </Box>
                     </HStack>
-                    <Text fontSize="sm" color="fg.muted">
-                      {currencyFormatter.format(groupTotal)}
-                    </Text>
+                    <HStack gap={1}>
+                      {invoice.notes && (
+                        <IconButton
+                          aria-label="Pokaż notatki"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setNotesEntry({ title: invoice.title || 'Faktura', notes: invoice.notes ?? '' })
+                          }
+                        >
+                          <FileText />
+                        </IconButton>
+                      )}
+                      <IconButton asChild aria-label="Edytuj fakturę" variant="ghost" size="sm">
+                        <Link to={`/faktury/${invoice.id}`} {...withBackground(location)}>
+                          <Pencil />
+                        </Link>
+                      </IconButton>
+                    </HStack>
                   </HStack>
-                </Collapsible.Trigger>
-                <Collapsible.Content>
-                  <Box>
-                    {items.map((item, index) => renderPlanItemRow(item, index === items.length - 1))}
-                  </Box>
-                </Collapsible.Content>
-              </Collapsible.Root>
-            )
-          })}
-        </VStack>
-      ) : activeTags.length > 0 || normalizedSearchQuery ? (
-        <Box>
-          {filteredPlanItems.map((item, index) =>
-            renderPlanItemRow(item, index === filteredPlanItems.length - 1),
+                )
+              }}
+            />
           )}
         </Box>
-      ) : (
-        <SortableList
-          items={planItems}
-          onReorder={handleReorderPlanItems}
-          renderItem={(item) => renderPlanItemRow(item, item.id === planItems[planItems.length - 1].id)}
-        />
-      )}
-
-      <HStack justify="space-between" mt={8} mb={3}>
-        <Text fontWeight="bold">Faktury ({invoices.length})</Text>
-        <Button asChild colorPalette="primary" size="sm">
-          <Link to={`/faktury/nowa?roomId=${roomId}`}>+ Dodaj fakturę</Link>
-        </Button>
-      </HStack>
-      {invoices.length === 0 ? (
-        <Text fontSize="sm" color="fg.muted" py={2}>
-          Brak faktur.
-        </Text>
-      ) : (
-        <SortableList
-          items={invoices}
-          onReorder={handleReorderInvoices}
-          renderItem={(invoice) => {
-            const invoiceShopNames = [
-              ...new Set(
-                planItems
-                  .filter((item) => invoice.linkedItemIds?.includes(item.id) && item.shopId)
-                  .map((item) => shops.find((shop) => shop.id === item.shopId)?.name)
-                  .filter((name): name is string => Boolean(name)),
-              ),
-            ]
-            return (
-              <HStack
-                justify="space-between"
-                py={3}
-                borderBottomWidth={invoice.id === invoices[invoices.length - 1].id ? undefined : '1px'}
-                borderColor="border"
-              >
-                <HStack gap={3}>
-                  <Box
-                    boxSize="6"
-                    minW="6"
-                    flexShrink={0}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    color="primary.300"
-                  >
-                    <Receipt />
-                  </Box>
-                  <Box>
-                    <Text>{invoice.title || 'Faktura'}</Text>
-                    <Text fontSize="sm" color="fg.muted">
-                      {currencyFormatter.format(
-                        (invoice.realCost ?? 0) +
-                        (invoice.pickupType === 'delivery' ? (invoice.deliveryCost ?? 0) : 0),
-                      )}
-                    </Text>
-                    <HStack gap={1} mt={0.5}>
-                      <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                        <Calendar />
-                      </Box>
-                      <Text fontSize="xs" color="fg.muted">
-                        {dateFormatter.format(new Date(invoice.date))}
-                      </Text>
-                    </HStack>
-                    {invoiceShopNames.length > 0 && (
-                      <HStack gap={1} mt={0.5}>
-                        <Box boxSize="2.5" display="flex" alignItems="center" color="fg.muted">
-                          <ShoppingBasket />
-                        </Box>
-                        <Text fontSize="xs" color="fg.muted">
-                          {invoiceShopNames.join(', ')}
-                        </Text>
-                      </HStack>
-                    )}
-                  </Box>
-                </HStack>
-                <HStack gap={1}>
-                  {invoice.notes && (
-                    <IconButton
-                      aria-label="Pokaż notatki"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setNotesEntry({ title: invoice.title || 'Faktura', notes: invoice.notes ?? '' })
-                      }
-                    >
-                      <FileText />
-                    </IconButton>
-                  )}
-                  <IconButton asChild aria-label="Edytuj fakturę" variant="ghost" size="sm">
-                    <Link to={`/faktury/${invoice.id}`}>
-                      <Pencil />
-                    </Link>
-                  </IconButton>
-                </HStack>
-              </HStack>
-            )
-          }}
-        />
-      )}
+      </Grid>
 
       <Dialog.Root open={Boolean(notesEntry)} onOpenChange={(details) => !details.open && setNotesEntry(null)}>
         <Portal>
@@ -749,7 +808,9 @@ function RoomDetailPage() {
             variant="subtle"
             colorPalette="primary"
             size="sm"
-            onClick={() => navigate(`/faktury/nowa?roomId=${roomId}&itemIds=${selectedItemIds.join(',')}`)}
+            onClick={() =>
+              navigate(`/faktury/nowa?roomId=${roomId}&itemIds=${selectedItemIds.join(',')}`, withBackground(location))
+            }
           >
             <FilePlus />
           </IconButton>

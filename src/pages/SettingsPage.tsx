@@ -3,6 +3,7 @@ import {
   Avatar,
   Box,
   Button,
+  Grid,
   HStack,
   InputGroup,
   NumberInput,
@@ -68,7 +69,7 @@ function SettingsPage() {
         </Button>
       </HStack>
       <Separator mt={8} />
-      <Box mt={4}>
+      <Box mt={4} maxW={{ base: 'full', md: '360px' }}>
         <Text fontWeight="bold" mb={2}>
           Budżet całkowity
         </Text>
@@ -89,13 +90,14 @@ function SettingsPage() {
         </Text>
       </Box>
       <Separator mt={8} />
-      <Box mt={4}>
-        <RoomsSection />
-      </Box>
-      <Separator mt={8} />
-      <Box mt={4}>
-        <ShopsSection />
-      </Box>
+      <Grid mt={4} templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={{ base: 8, md: 12 }}>
+        <Box>
+          <RoomsSection />
+        </Box>
+        <Box>
+          <ShopsSection />
+        </Box>
+      </Grid>
       <Separator mt={8} />
       <Text mt={4} fontSize="sm" color="fg.muted" textAlign="center">
         Made with ❤️ by Mat and Claude

@@ -230,8 +230,8 @@ function HomePage() {
   }
 
   return (
-    <Box p={4} pb={8}>
-      <HStack justify="space-between" align="flex-start">
+    <Box p={4} pb={8} h={{ md: '100%' }} display={{ md: 'flex' }} flexDirection={{ md: 'column' }}>
+      <HStack justify="space-between" align="flex-start" flexShrink={0}>
         <PageTitle icon={House}>Dom</PageTitle>
         <HStack gap={2}>
           <Text fontSize="sm" fontWeight="bold">
@@ -244,64 +244,76 @@ function HomePage() {
         </HStack>
       </HStack>
 
-      <Grid templateColumns="3fr 2fr" gap={4} alignItems="start">
+      <Grid
+        templateColumns={{ base: '1fr', md: '360px 1fr' }}
+        gap={{ base: 0, md: 8 }}
+        flex={{ md: '1' }}
+        minH={{ md: 0 }}
+        overflow={{ md: 'hidden' }}
+      >
         <Box>
-          <RoomsDonutChart
-            segments={roomSegments}
-            total={planned}
-            centerLabel="zaplanowano"
-            formatValue={currencyFormatter.format}
-            showLabels={false}
-          />
-        </Box>
-        <VStack gap={2} align="stretch">
-          <StatBox variant="solid" color="#5D3140" value={currencyFormatter.format(spent)} py={2} label="wydano" />
-          <Box asChild className="cursor-pointer">
-            <Link to="/pozycje">
-              <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
-            </Link>
+          <Grid templateColumns="3fr 2fr" gap={4} alignItems="start">
+            <Box>
+              <RoomsDonutChart
+                segments={roomSegments}
+                total={planned}
+                centerLabel="zaplanowano"
+                formatValue={currencyFormatter.format}
+                showLabels={false}
+              />
+            </Box>
+            <VStack gap={2} align="stretch">
+              <StatBox variant="solid" color="#5D3140" value={currencyFormatter.format(spent)} py={2} label="wydano" />
+              <Box asChild className="cursor-pointer">
+                <Link to="/pozycje">
+                  <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
+                </Link>
+              </Box>
+              <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
+            </VStack>
+          </Grid>
+
+          <Box mt={4}>
+            <SpentPlannedBudgetBar
+              spent={spent}
+              planned={planned}
+              budget={budget}
+              formatValue={currencyFormatter.format}
+              showLegendValue={false}
+            />
           </Box>
-          <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
-        </VStack>
+        </Box>
+
+        <Box h={{ md: '100%' }} overflowY={{ md: 'auto' }}>
+          <HStack fontWeight="bold" mt={{ base: 8, md: 0 }} mb={3} justify="space-between">
+            <HStack gap={2}>
+              <Text>Pomieszczenia</Text>
+            </HStack>
+            <IconButton
+              aria-label="Sortuj pomieszczenia wg zaplanowanej kwoty"
+              variant="ghost"
+              size="sm"
+              onClick={toggleRoomsSortOrder}
+            >
+              {(() => {
+                const SortIcon = sortOrderIcon[roomsSortOrder]
+                return <SortIcon width={18} height={18} />
+              })()}
+            </IconButton>
+          </HStack>
+          <VStack gap={4} align="stretch">
+            {sortedRooms.length === 0 ? (
+              <Text fontSize="sm" color="fg.muted">
+                Brak pomieszczeń — dodaj je w Ustawieniach.
+              </Text>
+            ) : (
+              sortedRooms.map((room) => (
+                <CategoryBar key={room.id} {...room} plannedShare={planned > 0 ? room.planned / planned : 0} />
+              ))
+            )}
+          </VStack>
+        </Box>
       </Grid>
-
-      <Box mt={4}>
-        <SpentPlannedBudgetBar
-          spent={spent}
-          planned={planned}
-          budget={budget}
-          formatValue={currencyFormatter.format}
-          showLegendValue={false}
-        />
-      </Box>
-
-      <HStack fontWeight="bold" mt={8} mb={3} justify="space-between">
-        <HStack gap={2}>
-          <Text>Pomieszczenia</Text>
-        </HStack>
-        <IconButton
-          aria-label="Sortuj pomieszczenia wg zaplanowanej kwoty"
-          variant="ghost"
-          size="sm"
-          onClick={toggleRoomsSortOrder}
-        >
-          {(() => {
-            const SortIcon = sortOrderIcon[roomsSortOrder]
-            return <SortIcon width={18} height={18} />
-          })()}
-        </IconButton>
-      </HStack>
-      <VStack gap={4} align="stretch">
-        {sortedRooms.length === 0 ? (
-          <Text fontSize="sm" color="fg.muted">
-            Brak pomieszczeń — dodaj je w Ustawieniach.
-          </Text>
-        ) : (
-          sortedRooms.map((room) => (
-            <CategoryBar key={room.id} {...room} plannedShare={planned > 0 ? room.planned / planned : 0} />
-          ))
-        )}
-      </VStack>
     </Box>
   )
 }

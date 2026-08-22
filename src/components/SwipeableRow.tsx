@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { Box, HStack, IconButton } from '@chakra-ui/react'
 import { Check } from '@gravity-ui/icons'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 export interface SwipeAction {
   label: string
@@ -24,14 +25,64 @@ const ACTION_GAP = 8
 const DIRECTION_THRESHOLD = 6
 const SELECT_WIDTH = 72
 
-function SwipeableRow({
-  actions,
-  children,
-  borderBottomWidth,
-  borderColor,
-  onSwipeRight,
-  selected,
-}: SwipeableRowProps) {
+function DesktopRow({ actions, children, borderBottomWidth, borderColor, onSwipeRight, selected }: SwipeableRowProps) {
+  return (
+    <Box
+      display="flex"
+      alignItems="center"
+      gap={2}
+      bg={selected ? 'primary.subtle' : 'bg'}
+      borderLeftWidth={selected ? '4px' : undefined}
+      borderLeftColor={selected ? 'primary.solid' : undefined}
+      borderBottomWidth={borderBottomWidth}
+      borderColor={borderColor}
+      pl={selected ? undefined : onSwipeRight ? '4px' : undefined}
+    >
+      {onSwipeRight && (
+        <Box
+          as="button"
+          aria-label={selected ? 'Odznacz' : 'Zaznacz'}
+          onClick={onSwipeRight}
+          className="cursor-pointer"
+          flexShrink={0}
+          boxSize="20px"
+          borderRadius="full"
+          borderWidth="2px"
+          borderColor="primary.solid"
+          bg={selected ? 'primary.solid' : 'transparent'}
+          color="primary.contrast"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          {selected && <Check width={12} height={12} />}
+        </Box>
+      )}
+      <Box flex="1" minW={0}>
+        {children}
+      </Box>
+      {actions.length > 0 && (
+        <HStack gap={2} flexShrink={0}>
+          {actions.map((action) => (
+            <IconButton
+              key={action.label}
+              aria-label={action.label}
+              onClick={action.onClick}
+              colorPalette="primary"
+              variant="solid"
+              size="sm"
+              className="cursor-pointer"
+            >
+              {action.icon}
+            </IconButton>
+          ))}
+        </HStack>
+      )}
+    </Box>
+  )
+}
+
+function MobileRow({ actions, children, borderBottomWidth, borderColor, onSwipeRight, selected }: SwipeableRowProps) {
   const [offset, setOffset] = useState(0)
   const [dragging, setDragging] = useState(false)
   const startRef = useRef<{ x: number; y: number; offset: number } | null>(null)
@@ -145,6 +196,11 @@ function SwipeableRow({
       </Box>
     </Box>
   )
+}
+
+function SwipeableRow(props: SwipeableRowProps) {
+  const isDesktop = useIsDesktop()
+  return isDesktop ? <DesktopRow {...props} /> : <MobileRow {...props} />
 }
 
 export default SwipeableRow

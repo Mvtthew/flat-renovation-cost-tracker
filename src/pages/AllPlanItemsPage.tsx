@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Box, Button, Collapsible, HStack, IconButton, Input, InputGroup, Spinner, Tag, Text, VStack, Wrap } from '@chakra-ui/react'
 import { ref, onValue } from 'firebase/database'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Box as BoxIcon,
@@ -17,6 +17,7 @@ import {
   Trolley,
 } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import { withBackground } from '../lib/modalRoute'
 import { getRoomIcon } from '../lib/roomIcons'
 import { groupItemsByTag, NO_TAG_GROUP } from '../lib/groupByTag'
 import type { PlanItem } from './PlanItemFormPage'
@@ -38,6 +39,7 @@ const dateFormatter = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium' })
 
 function AllPlanItemsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [planItems, setPlanItems] = useState<PlanItem[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
@@ -129,7 +131,7 @@ function AllPlanItemsPage() {
           {
             label: 'Edytuj pozycję',
             icon: <Pencil />,
-            onClick: () => navigate(`/pozycje/${item.id}`),
+            onClick: () => navigate(`/pozycje/${item.id}`, withBackground(location)),
           },
         ]}
       >
@@ -278,7 +280,9 @@ function AllPlanItemsPage() {
             {groupByTagEnabled ? <Folders /> : <ListUl />}
           </IconButton>
           <Button asChild colorPalette="primary" size="sm">
-            <Link to="/dodaj">+ Pozycja planu</Link>
+            <Link to="/dodaj" {...withBackground(location)}>
+              + Pozycja planu
+            </Link>
           </Button>
         </HStack>
       </HStack>
@@ -339,7 +343,7 @@ function AllPlanItemsPage() {
                   </HStack>
                 </Collapsible.Trigger>
                 <Collapsible.Content>
-                  <Box>
+                  <Box display={{ base: 'block', md: 'grid' }} gridTemplateColumns={{ md: '1fr 1fr' }} gap={{ md: 2 }}>
                     {items.map((item, index) => renderPlanItemRow(item, index === items.length - 1))}
                   </Box>
                 </Collapsible.Content>
@@ -348,7 +352,7 @@ function AllPlanItemsPage() {
           })}
         </VStack>
       ) : (
-        <Box>
+        <Box display={{ base: 'block', md: 'grid' }} gridTemplateColumns={{ md: '1fr 1fr' }} gap={{ md: 2 }}>
           {filteredPlanItems.map((item, index) =>
             renderPlanItemRow(item, index === filteredPlanItems.length - 1),
           )}

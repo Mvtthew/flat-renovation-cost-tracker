@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Box, Button, HStack, IconButton, Spinner, Text } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Pencil } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import { withBackground } from '../lib/modalRoute'
 import type { Room } from '../pages/RoomFormPage'
 import { getRoomIcon } from '../lib/roomIcons'
 import SortableList from './SortableList'
@@ -11,6 +12,7 @@ import SortableList from './SortableList'
 const ROOMS_PATH = 'settings/rooms'
 
 function RoomsSection() {
+  const location = useLocation()
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -39,7 +41,9 @@ function RoomsSection() {
       <HStack justify="space-between" mb={4}>
         <Text fontWeight="bold">Pomieszczenia</Text>
         <Button asChild colorPalette="primary" size="sm">
-          <Link to="/ustawienia/pomieszczenia/nowe">+ Dodaj pomieszczenie</Link>
+          <Link to="/ustawienia/pomieszczenia/nowe" {...withBackground(location)}>
+            + Dodaj pomieszczenie
+          </Link>
         </Button>
       </HStack>
       {loading ? (
@@ -72,7 +76,7 @@ function RoomsSection() {
                 <Text>{room.name}</Text>
               </HStack>
               <IconButton asChild aria-label="Edytuj pomieszczenie" variant="ghost" size="sm">
-                <Link to={`/ustawienia/pomieszczenia/${room.id}`}>
+                <Link to={`/ustawienia/pomieszczenia/${room.id}`} {...withBackground(location)}>
                   <Pencil />
                 </Link>
               </IconButton>

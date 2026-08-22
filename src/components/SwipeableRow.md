@@ -1,6 +1,12 @@
 # SwipeableRow
 
-Wraps a list row's content and reveals a strip of `IconButton` actions to its right when the user swipes the row left, mimicking the native iOS/Android "swipe to reveal actions" pattern. Optionally also handles a swipe-right gesture as a distinct "select this row" action rather than revealing anything persistent.
+Wraps a list row's content and reveals a strip of `IconButton` actions when the user swipes/selects the row, mimicking the native iOS/Android "swipe to reveal actions" pattern. Renders one of two very different implementations depending on [useIsDesktop](../hooks/useIsDesktop.md), both behind the same props: `MobileRow` (the swipe-gesture implementation described below) on narrow viewports, `DesktopRow` (a cursor-first row — actions render as an always-visible trailing `HStack` of `IconButton`s, and `onSwipeRight` becomes an always-visible small circular checkbox-style button on the left instead of a drag gesture) on `md`+ viewports. Optionally also handles a swipe-right gesture (mobile) / that checkbox click (desktop) as a distinct "select this row" action rather than revealing anything persistent.
+
+`DesktopRow`'s action buttons are deliberately always visible rather than hover-revealed — an earlier hover-only (`opacity: 0` until `_groupHover`) version turned out to be effectively undiscoverable/invisible in practice, so there's no hidden-until-hover state to worry about breaking.
+
+`DesktopRow`'s action `IconButton`s always use `colorPalette="primary" variant="solid"` (matching the app's primary `Button`s, e.g. `ShopsSection`'s "+ Dodaj sklep") regardless of each `SwipeAction`'s own `colorPalette` — that per-action override is a `MobileRow`-only affordance (e.g. distinguishing a "Pokaż notatki" action with `colorPalette: 'gray'`); solid+primary was chosen for `DesktopRow` deliberately since `subtle`/`ghost` variants keyed off varying `colorPalette`s risked landing on a low-contrast bg/icon pairing against the row background.
+
+The rest of this doc describes the mobile (`MobileRow`) gesture implementation — the desktop variant reuses the same props but has no pointer-drag logic at all, since hover is a strictly better affordance than a swipe gesture when a mouse is present.
 
 ## Props
 

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Box, Button, HStack, IconButton, Spinner, Text } from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Pencil, ShoppingBasket } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
+import { withBackground } from '../lib/modalRoute'
 import type { PickupType, Shop } from '../pages/ShopFormPage'
 import SortableList from './SortableList'
 
 const SHOPS_PATH = 'settings/shops'
 
 function ShopsSection() {
+  const location = useLocation()
   const [shops, setShops] = useState<Shop[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -41,7 +43,9 @@ function ShopsSection() {
       <HStack justify="space-between" mb={4}>
         <Text fontWeight="bold">Sklepy / dostawcy</Text>
         <Button asChild colorPalette="primary" size="sm">
-          <Link to="/ustawienia/sklepy/nowy">+ Dodaj sklep</Link>
+          <Link to="/ustawienia/sklepy/nowy" {...withBackground(location)}>
+            + Dodaj sklep
+          </Link>
         </Button>
       </HStack>
       {loading ? (
@@ -72,7 +76,7 @@ function ShopsSection() {
                 <Text>{shop.name}</Text>
               </HStack>
               <IconButton asChild aria-label="Edytuj sklep" variant="ghost" size="sm">
-                <Link to={`/ustawienia/sklepy/${shop.id}`}>
+                <Link to={`/ustawienia/sklepy/${shop.id}`} {...withBackground(location)}>
                   <Pencil />
                 </Link>
               </IconButton>
