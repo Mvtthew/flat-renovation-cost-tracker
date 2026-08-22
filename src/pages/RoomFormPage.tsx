@@ -26,6 +26,7 @@ function RoomFormPage() {
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
   const [icon, setIcon] = useState(DEFAULT_ROOM_ICON)
+  const [order, setOrder] = useState<number>()
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -37,6 +38,7 @@ function RoomFormPage() {
       setName(value?.name ?? '')
       setBudget(typeof value?.budget === 'number' ? String(value.budget) : '')
       setIcon(value?.icon ?? DEFAULT_ROOM_ICON)
+      setOrder(value?.order)
       setLoading(false)
     })
     return () => {
@@ -54,6 +56,7 @@ function RoomFormPage() {
           name: trimmedName,
           budget: budget === '' ? 0 : Number(budget),
           icon,
+          order: order ?? 0,
         })
       } else {
         const snapshot = await get(ref(database, ROOMS_PATH))

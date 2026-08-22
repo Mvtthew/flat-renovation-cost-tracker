@@ -70,6 +70,7 @@ function PlanItemFormPage() {
   const [deliveryCost, setDeliveryCost] = useState('')
   const [deliveryDays, setDeliveryDays] = useState('')
   const [purchased, setPurchased] = useState(false)
+  const [order, setOrder] = useState<number>()
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -123,6 +124,7 @@ function PlanItemFormPage() {
       setDeliveryCost(typeof value?.deliveryCost === 'number' ? String(value.deliveryCost) : '')
       setDeliveryDays(typeof value?.deliveryDays === 'number' ? String(value.deliveryDays) : '')
       setPurchased(value?.purchased ?? false)
+      setOrder(value?.order)
       setLoading(false)
     })
     return () => {
@@ -174,7 +176,7 @@ function PlanItemFormPage() {
     setSaving(true)
     try {
       if (itemId) {
-        await set(ref(database, `${PLAN_ITEMS_PATH}/${itemId}`), data)
+        await set(ref(database, `${PLAN_ITEMS_PATH}/${itemId}`), { ...data, order: order ?? 0 })
       } else {
         const snapshot = await get(ref(database, PLAN_ITEMS_PATH))
         const existing = snapshot.val() as Record<string, PlanItem> | null
