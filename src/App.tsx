@@ -11,6 +11,7 @@ import RoomFormPage from './pages/RoomFormPage'
 import RoomDetailPage from './pages/RoomDetailPage'
 import PlanItemFormPage from './pages/PlanItemFormPage'
 import InvoiceFormPage from './pages/InvoiceFormPage'
+import AllPlanItemsPage from './pages/AllPlanItemsPage'
 import TabIcon from './components/TabIcon'
 import LoginScreen from './components/LoginScreen'
 import Loader from './components/Loader'
@@ -77,6 +78,7 @@ function AppShell() {
           <Route path="/ustawienia/pomieszczenia/nowe" element={<RoomFormPage />} />
           <Route path="/ustawienia/pomieszczenia/:roomId" element={<RoomFormPage />} />
           <Route path="/dodaj" element={<PlanItemFormPage />} />
+          <Route path="/pozycje" element={<AllPlanItemsPage />} />
           <Route path="/pozycje/:itemId" element={<PlanItemFormPage />} />
           <Route path="/faktury/nowa" element={<InvoiceFormPage />} />
           <Route path="/faktury/:invoiceId" element={<InvoiceFormPage />} />

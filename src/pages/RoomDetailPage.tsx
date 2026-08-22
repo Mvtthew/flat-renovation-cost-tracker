@@ -1,17 +1,37 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Dialog, Grid, HStack, IconButton, Portal, Spinner, Tag, Text, VStack, Wrap } from '@chakra-ui/react'
+import {
+  Box,
+  Button,
+  Collapsible,
+  Dialog,
+  Grid,
+  HStack,
+  IconButton,
+  Input,
+  InputGroup,
+  Portal,
+  Spinner,
+  Tag,
+  Text,
+  VStack,
+  Wrap,
+} from '@chakra-ui/react'
 import { ref, onValue, update } from 'firebase/database'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Box as BoxIcon,
   Calendar,
+  ChevronDown,
   CircleMinus,
   FileDollar,
   FilePlus,
   FileText,
+  Folders,
   Hourglass,
   Link as LinkIcon,
+  ListUl,
+  Magnifier,
   Pencil,
   Receipt,
   ShoppingBasket,
@@ -21,6 +41,7 @@ import {
 } from '@gravity-ui/icons'
 import { database } from '../lib/firebase'
 import { getRoomIcon } from '../lib/roomIcons'
+import { groupItemsByTag, NO_TAG_GROUP } from '../lib/groupByTag'
 import type { Room } from './RoomFormPage'
 import type { PlanItem } from './PlanItemFormPage'
 import type { Shop } from './ShopFormPage'
@@ -72,6 +93,7 @@ function RoomDetailPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [notesEntry, setNotesEntry] = useState<{ title: string; notes: string } | null>(null)
   const [activeTags, setActiveTags] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
   const [existingTags, setExistingTags] = useState<string[]>([])
   const [addTagModalOpen, setAddTagModalOpen] = useState(false)
@@ -79,6 +101,8 @@ function RoomDetailPage() {
   const [addTagInputValue, setAddTagInputValue] = useState('')
   const [removeTagModalOpen, setRemoveTagModalOpen] = useState(false)
   const [tagsToRemove, setTagsToRemove] = useState<string[]>([])
+  const [groupByTagEnabled, setGroupByTagEnabled] = useState(true)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!roomId) return
@@ -220,12 +244,31 @@ function RoomDetailPage() {
     clearSelection()
   }
 
+  const toggleGroupExpanded = (tag: string) => {
+    setExpandedGroups((current) => {
+      const next = new Set(current)
+      if (next.has(tag)) next.delete(tag)
+      else next.add(tag)
+      return next
+    })
+  }
+
+  const itemCost = (item: PlanItem) =>
+    (item.price ?? 0) * (item.amount ?? 1) + (item.pickupType === 'delivery' ? (item.deliveryCost ?? 0) : 0)
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
+
   const filteredPlanItems = useMemo(
     () =>
-      activeTags.length === 0
-        ? planItems
-        : planItems.filter((item) => activeTags.every((tag) => item.tags?.includes(tag))),
-    [planItems, activeTags],
+      planItems
+        .filter((item) => activeTags.length === 0 || activeTags.every((tag) => item.tags?.includes(tag)))
+        .filter(
+          (item) =>
+            !normalizedSearchQuery ||
+            item.name.toLowerCase().includes(normalizedSearchQuery) ||
+            item.tags?.some((tag) => tag.toLowerCase().includes(normalizedSearchQuery)),
+        ),
+    [planItems, activeTags, normalizedSearchQuery],
   )
 
   const planned = useMemo(
@@ -459,12 +502,33 @@ function RoomDetailPage() {
         </Box>
       </Box>
 
-      <HStack justify="space-between" mt={8} mb={activeTags.length > 0 ? 2 : 3}>
+      <HStack justify="space-between" mt={8} mb={3}>
         <Text fontWeight="bold">Zaplanowane ({filteredPlanItems.length})</Text>
-        <Button asChild colorPalette="primary" size="sm">
-          <Link to={`/dodaj?roomId=${roomId}`}>+ Pozycja planu</Link>
-        </Button>
+        <HStack gap={2}>
+          <IconButton
+            aria-label={groupByTagEnabled ? 'Pokaż jako listę' : 'Grupuj po tagach'}
+            variant={groupByTagEnabled ? 'solid' : 'ghost'}
+            colorPalette="primary"
+            size="sm"
+            onClick={() => setGroupByTagEnabled((current) => !current)}
+          >
+            {groupByTagEnabled ? <Folders /> : <ListUl />}
+          </IconButton>
+          <Button asChild colorPalette="primary" size="sm">
+            <Link to={`/dodaj?roomId=${roomId}`}>+ Pozycja planu</Link>
+          </Button>
+        </HStack>
       </HStack>
+      {planItems.length > 0 && (
+        <InputGroup startElement={<Magnifier width={16} height={16} />} mb={activeTags.length > 0 ? 2 : 3}>
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Szukaj pozycji…"
+            borderWidth="2px"
+          />
+        </InputGroup>
+      )}
       {activeTags.length > 0 && (
         <Wrap gap={2} mb={3}>
           {activeTags.map((tag) => (
@@ -483,9 +547,56 @@ function RoomDetailPage() {
         </Text>
       ) : filteredPlanItems.length === 0 ? (
         <Text fontSize="sm" color="fg.muted" py={2}>
-          Brak pozycji z wybranymi tagami.
+          {normalizedSearchQuery ? 'Brak pozycji pasujących do wyszukiwania.' : 'Brak pozycji z wybranymi tagami.'}
         </Text>
-      ) : activeTags.length > 0 ? (
+      ) : groupByTagEnabled ? (
+        <VStack align="stretch" gap={1}>
+          {groupItemsByTag(filteredPlanItems).map(({ tag, items }) => {
+            const isExpanded = expandedGroups.has(tag)
+            const groupTotal = items.reduce((sum, item) => sum + itemCost(item), 0)
+            return (
+              <Collapsible.Root
+                key={tag}
+                open={isExpanded}
+                onOpenChange={() => toggleGroupExpanded(tag)}
+              >
+                <Collapsible.Trigger asChild>
+                  <HStack
+                    as="button"
+                    w="full"
+                    justify="space-between"
+                    py={2}
+                    cursor="pointer"
+                  >
+                    <HStack gap={2}>
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        transform={isExpanded ? undefined : 'rotate(-90deg)'}
+                        transition="transform 0.15s"
+                      >
+                        <ChevronDown width={16} height={16} />
+                      </Box>
+                      <Text fontWeight="bold">{tag === NO_TAG_GROUP ? 'Bez tagu' : tag}</Text>
+                      <Text fontSize="sm" color="fg.muted">
+                        ({items.length})
+                      </Text>
+                    </HStack>
+                    <Text fontSize="sm" color="fg.muted">
+                      {currencyFormatter.format(groupTotal)}
+                    </Text>
+                  </HStack>
+                </Collapsible.Trigger>
+                <Collapsible.Content>
+                  <Box>
+                    {items.map((item, index) => renderPlanItemRow(item, index === items.length - 1))}
+                  </Box>
+                </Collapsible.Content>
+              </Collapsible.Root>
+            )
+          })}
+        </VStack>
+      ) : activeTags.length > 0 || normalizedSearchQuery ? (
         <Box>
           {filteredPlanItems.map((item, index) =>
             renderPlanItemRow(item, index === filteredPlanItems.length - 1),

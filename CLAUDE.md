@@ -75,6 +75,7 @@ For every new component, create a sibling `.md` file (e.g. `src/components/CostL
 - [HomePage](src/pages/HomePage.md)
 - [RoomDetailPage](src/pages/RoomDetailPage.md)
 - [PlanPage](src/pages/PlanPage.md)
+- [AllPlanItemsPage](src/pages/AllPlanItemsPage.md)
 - [SettingsPage](src/pages/SettingsPage.md)
 - [ShopFormPage](src/pages/ShopFormPage.md)
 - [RoomFormPage](src/pages/RoomFormPage.md)

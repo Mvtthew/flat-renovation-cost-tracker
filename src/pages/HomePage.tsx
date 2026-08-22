@@ -256,7 +256,11 @@ function HomePage() {
         </Box>
         <VStack gap={2} align="stretch">
           <StatBox variant="solid" color="#5D3140" value={currencyFormatter.format(spent)} py={2} label="wydano" />
-          <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
+          <Box asChild className="cursor-pointer">
+            <Link to="/pozycje">
+              <StatBox value={String(planItems.length)} label="pozycje" icon={BoxIcon} py={2} borderWidth="2px" />
+            </Link>
+          </Box>
           <StatBox value={String(invoices.length)} label="faktury" icon={FileDollar} py={2} borderWidth="2px" />
         </VStack>
       </Grid>
